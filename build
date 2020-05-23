@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cd ..
+mkdir bin &> /dev/null
+cd bin &> /dev/null
+clear
+cl -Zi ../src/win32_handmade.cpp user32.lib Gdi32.lib
+cd - &> /dev/null
+cd src/

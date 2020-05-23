@@ -1,0 +1,2 @@
+#!/bin/bash
+devenv ../bin/win32_handmade.exe &
