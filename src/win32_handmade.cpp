@@ -408,6 +408,11 @@ int CALLBACK WinMain(
     LPSTR CommandLine,
     int ShowCode) {
     
+    uint64_t LastCycleCount = __rdtsc();
+    LARGE_INTEGER PerfCounterFrequencyResult;
+    QueryPerformanceFrequency(&PerfCounterFrequencyResult);
+    int64_t PerfCounterFrequency = PerfCounterFrequencyResult.QuadPart;
+
     Win32LoadXInput();
 
     // Making a window class
@@ -420,8 +425,7 @@ int CALLBACK WinMain(
     WindowClass.hInstance= Instance;
     WindowClass.lpszClassName=TEXT("HandmadeHeroWindowClass");
     // WindowClass.hIcon
-    // LPCSTR    lpszClassName;
-
+    
     // Registering a Window Class
     if (RegisterClass(&WindowClass)) {
 
@@ -460,6 +464,9 @@ int CALLBACK WinMain(
 	    Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
 	    Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.LatencySampleCount * SoundOutput.BytesPerSample);
 	    GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
+
+	    LARGE_INTEGER LastCounter;
+	    QueryPerformanceCounter(&LastCounter);
 
 	    GlobalRunning = 1;
             while(GlobalRunning) {
@@ -553,6 +560,25 @@ int CALLBACK WinMain(
 		Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext, 
 			Dimension.Width, Dimension.Height);
 		ReleaseDC(Window, DeviceContext);
+
+		uint64_t EndCycleCount = __rdtsc();
+
+		// TODO Display the value here
+		LARGE_INTEGER EndCounter;
+		QueryPerformanceCounter(&EndCounter);
+
+		uint64_t CyclesElapsed = EndCycleCount - LastCycleCount;
+		int64_t CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+		int32_t MSPerFrame = (int32_t)((1000*CounterElapsed)/PerfCounterFrequency);
+		int32_t FPS = PerfCounterFrequency / CounterElapsed;
+		int32_t MCPS = (int32_t)CyclesElapsed / (1000 * 1000);
+
+		char Buffer[256];
+		wsprintf(Buffer, "%dms/f, %df/s, %dmc/f\n", MSPerFrame, FPS, MCPS);
+		OutputDebugStringA(Buffer);
+
+		LastCounter = EndCounter;
+		LastCycleCount = EndCycleCount;
 	    }
 
         } else {
