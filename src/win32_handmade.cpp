@@ -1,14 +1,30 @@
-#include <windows.h>
-#include <stdint.h>
-#include <xinput.h>
-#include <dsound.h>
+/*
+   TODO THIS IS NOT A FINAL PLATFORM LAYER
 
-// TODO Implement Sine ourselves
-#include <math.h>
+   - Saved Game Location
+   - Getting a Handle to our own executable file
+   - Asset loading Path
+   - Threading (lauch a thread)
+   - Raw Input (Support for multiple keyboards)
+   - Sleep/timeBeginPeriod
+   - ClipCursor() for multi monitor 
+   - Fullscreen support
+   - WM_SETCUROSOR (control cursor visibility)
+   - QueryCancelAutoplay
+   - WM_ACTIVEAPP (for when we are not the active application)
+   - Blit Speed Improvement
+   - Hardware Acceleration (OpenGL or DirectX or BOTH?)
+   - GetKeyboardLayout (for the French Keyboard, international WASD keyboard)
+
+   NOT A COMPLETE LIST!!!
+*/
+
+#include <stdint.h>
 
 #define local_persist static 
 #define global_var static
 #define internal static
+
 #define PI32 3.14159265359f
 
 typedef int32_t bool32;
@@ -16,8 +32,16 @@ typedef char bool8;
 typedef float real32;
 typedef double real64;
 
-struct win32_offscreen_buffer {
+#include "handmade.cpp"
 
+// TODO Implement Sine ourselves
+#include <math.h>
+#include <windows.h>
+#include <xinput.h>
+#include <dsound.h>
+
+struct win32_offscreen_buffer {
+ 
     BITMAPINFO Info;
     void *Memory;
     int Width; 
@@ -57,7 +81,7 @@ global_var x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
 // DirectSound
-#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
 internal void Win32LoadXInput(void) {
@@ -170,24 +194,6 @@ internal win32_window_dimension Win32GetWindowDimension(HWND Window) {
     return (Result);
 }
 
-internal void RenderWeirdGradient(win32_offscreen_buffer *Buffer, int XOffset, int YOffset) {
-    
-    // TODO let's what the optimizer does
-
-    uint8_t *Row = (uint8_t *)Buffer->Memory;
-    for(int Y = 0; Y < Buffer->Height; ++Y) {
-
-	uint32_t *Pixel = (uint32_t *)Row;
-	for(int X = 0; X < Buffer->Width; ++X) {
-
-	    uint8_t Blue = (X + XOffset);
-	    uint8_t Green = (Y + YOffset);
-	    // Coloring scheme is BRG because fuck windows
-	    *Pixel++ = ((Green << 8) | Blue);
-	}
-	Row += Buffer->Pitch;
-    }
-}
 internal void Win32ResizeDIBSection (win32_offscreen_buffer *Buffer, int Width, int Height) {
 
     // TODO we have to catch the edge cases
@@ -219,7 +225,7 @@ internal void Win32ResizeDIBSection (win32_offscreen_buffer *Buffer, int Width, 
 
 internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer, HDC DeviceContext,
 					int WindowWidth, int WindowHeight) {
-    // TODO Aspect ration correction
+    // TODO Aspect ratio correction
     StretchDIBits(
 	    DeviceContext,
 	    /*
@@ -401,7 +407,9 @@ internal void Win32FillSoundBuffer(win32_sound_output *SoundOutput, DWORD ByteTo
         GlobalSecondaryBuffer->Unlock(Region1, Region1Size, Region2, Region2Size);
 
     }   
+
 }
+
 int CALLBACK WinMain(
     HINSTANCE Instance,
     HINSTANCE PrevInstance,
@@ -526,7 +534,13 @@ int CALLBACK WinMain(
 		Vibration.wRightMotorSpeed = 60000;
 		// XInputSetState(0, &Vibration);
 
-		RenderWeirdGradient(&GlobalBackBuffer, XOffset, YOffset);
+		game_offscreen_buffer Buffer = {};
+		Buffer.Memory = GlobalBackBuffer.Memory;
+		Buffer.Width  = GlobalBackBuffer.Width; 
+		Buffer.Height = GlobalBackBuffer.Height;
+		Buffer.Pitch  = GlobalBackBuffer.Pitch;
+		Buffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
+		GameUpdateAndRender(&Buffer, XOffset, YOffset);
 
 		// DirectSound Output test
 		DWORD PlayCursor;
@@ -573,9 +587,11 @@ int CALLBACK WinMain(
 		int32_t FPS = PerfCounterFrequency / CounterElapsed;
 		int32_t MCPS = (int32_t)CyclesElapsed / (1000 * 1000);
 
+#if 0
 		char Buffer[256];
 		wsprintf(Buffer, "%dms/f, %df/s, %dmc/f\n", MSPerFrame, FPS, MCPS);
 		OutputDebugStringA(Buffer);
+#endif
 
 		LastCounter = EndCounter;
 		LastCycleCount = EndCycleCount;
