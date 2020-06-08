@@ -44,6 +44,8 @@ internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, 
 		game_sound_output_buffer *SoundBuffer) {
 
+	Assert((&Input->Controllers[0].Back - &Input->Controllers[0].Buttons[0]) ==
+			(ArrayCount(Input->Controllers[0].Buttons) -1));
 	Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
 
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
@@ -64,26 +66,38 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
 		Memory->IsInitialized = true;
 	}
 
-	game_controller_input *Input0 = &Input->Controllers[0];
-	if(Input0->IsAnalog) {
+	for (int ControllerIndex = 0;
+		 ControllerIndex < ArrayCount(Input->Controllers);
+		 ++ControllerIndex)
+	{
+		game_controller_input *Controller = GetController(Input, ControllerIndex);
+		if(Controller->IsAnalog) {
 
-		// Do the analogue tunning
-		GameState->ToneHz = 256 + (int)(128.0f * (Input0->EndY));
-		GameState->BlueOffset += (int)(4.0f*Input0->EndX);
+			// Do the analogue tunning
+			GameState->ToneHz = 256 + (int)(128.0f * (Controller->StickAverageY));
+			GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
 
-	} else {
+		} else {
 
-		// Digital input tunning
+			// Digital input tunning
+			if (Controller->MoveLeft.EndedDown)
+			{
+				GameState->BlueOffset += 1;
+			}
+			if (Controller->MoveRight.EndedDown)
+			{
+				GameState->BlueOffset -= 1;
+			}
+		}
+
+		// Input.AButtonEndedDown;
+		// Input.AButtonHalfTransitionCount;
+		if (Controller->ActionDown.EndedDown) {
+
+			GameState->GreenOffset += 1;
+		}
 	}
-
-	// Input.AButtonEndedDown;
-	// Input.AButtonHalfTransitionCount;
-	if (Input0->Down.EndedDown) {
-
-		GameState->GreenOffset += 1;
-	}
-
-
+	
 	// TODO Allow sample offsets here for more robust platform options
 	GameOutputSound(SoundBuffer, GameState->ToneHz);
 	RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
