@@ -1,5 +1,5 @@
 /*
-   TODO THIS IS NOT A FINAL PLATFORM LAYER
+   NOTE THIS IS NOT A FINAL PLATFORM LAYER
 
    - Saved Game Location
    - Getting a Handle to our own executable file
@@ -22,6 +22,7 @@
 // TODO Implement Sine ourselves
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define local_persist static 
 #define global_var static
@@ -46,6 +47,7 @@ typedef double real64;
 global_var bool8 GlobalRunning;
 global_var win32_offscreen_buffer GlobalBackBuffer; 
 global_var LPDIRECTSOUNDBUFFER GlobalSecondaryBuffer;
+global_var int64_t GlobalPerfCounterFrequency;
 
 // XInputGetState
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE* pState)
@@ -141,6 +143,7 @@ internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32_t MemorySize
 
 	return Result;
 }
+
 internal void Win32LoadXInput(void) {
 
 	// TODO Diagnostic
@@ -540,16 +543,35 @@ Win32ProcessPendingMessages(game_controller_input *KeyboardController) {
 	}
 }
 
+
+inline LARGE_INTEGER Win32GetWallClock(void)
+{
+	LARGE_INTEGER Result;
+	QueryPerformanceCounter(&Result);
+	return Result;
+}
+
+inline real32 Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+{
+	real32 Result = ((real32)(End.QuadPart - Start.QuadPart) /
+					 (real32)GlobalPerfCounterFrequency);
+	return Result;
+}
+
 int CALLBACK WinMain(
 		HINSTANCE Instance,
 		HINSTANCE PrevInstance,
 		LPSTR CommandLine,
 		int ShowCode) {
 
-	uint64_t LastCycleCount = __rdtsc();
 	LARGE_INTEGER PerfCounterFrequencyResult;
 	QueryPerformanceFrequency(&PerfCounterFrequencyResult);
-	int64_t PerfCounterFrequency = PerfCounterFrequencyResult.QuadPart;
+	GlobalPerfCounterFrequency = PerfCounterFrequencyResult.QuadPart;
+
+	// NOTE Set the Windows schedular granularity to 1ms
+	// so that our sleep can be more granular.
+	UINT DesiredSchedulerMS = 1;
+	bool32 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
 
 	Win32LoadXInput();
 
@@ -563,6 +585,11 @@ int CALLBACK WinMain(
 	WindowClass.hInstance= Instance;
 	WindowClass.lpszClassName=TEXT("HandmadeHeroWindowClass");
 	// WindowClass.hIcon
+
+	// TODO how do we reliably query this on Windows?
+	int MonitorRefreshHz = 60;
+	int GameUpdateHz = MonitorRefreshHz / 2;
+	real32 TargetSecondsPerFrame = 1.0f / (real32)GameUpdateHz;
 
 	// Registering a Window Class
 	if (RegisterClass(&WindowClass)) {
@@ -600,8 +627,6 @@ int CALLBACK WinMain(
 			Win32ClearBuffer(&SoundOutput);
 			GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
 
-			LARGE_INTEGER LastCounter;
-			QueryPerformanceCounter(&LastCounter);
 
 			// TODO Pool with bitmap VirtualAlloc
 			int16_t *Samples = 
@@ -630,6 +655,9 @@ int CALLBACK WinMain(
 				game_input *NewInput = &Input[0];
 				game_input *OldInput = &Input[1];
 
+				LARGE_INTEGER LastCounter = Win32GetWallClock();
+
+				uint64_t LastCycleCount = __rdtsc();
 				GlobalRunning = 1;
 				while(GlobalRunning) {
 
@@ -775,16 +803,6 @@ int CALLBACK WinMain(
 									&OldController->Back, 
 									&NewController->Back);
 
-							//bool32 Start = (Pad->wButtons & XINPUT_GAMEPAD_START);
-							//bool32 Back = (Pad->wButtons & XINPUT_GAMEPAD_BACK);
-							//bool32 LeftShoulder = (Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER);
-							//bool32 RightShoulder = (Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER);
-							//bool32 AButton = (Pad->wButtons & XINPUT_GAMEPAD_A);
-							//bool32 BButton = (Pad->wButtons & XINPUT_GAMEPAD_B);
-							//bool32 XButton = (Pad->wButtons & XINPUT_GAMEPAD_X);
-							//bool32 YButton = (Pad->wButtons & XINPUT_GAMEPAD_Y);
-
-
 							// TODO handle deadzone for the thumb sticks
 
 
@@ -849,37 +867,59 @@ int CALLBACK WinMain(
 						Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer); 
 					}
 
+					// TODO Display the value here
+					
+					LARGE_INTEGER WorkCounter = Win32GetWallClock();
+					real32 WorkSecondsElapsed = Win32GetSecondsElapsed(LastCounter, WorkCounter);
+
+					// TODO Not tested yet probably buggy
+					real32 SecondsElapsedForFrame = WorkSecondsElapsed;
+					if (SecondsElapsedForFrame < TargetSecondsPerFrame)
+					{
+						if(SleepIsGranular)
+						{
+							DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame - SecondsElapsedForFrame));
+							if (SleepMS > 0)
+							{
+								Sleep(SleepMS);
+							}
+						}
+						while(SecondsElapsedForFrame < TargetSecondsPerFrame)
+						{
+							SecondsElapsedForFrame = Win32GetSecondsElapsed(LastCounter, Win32GetWallClock());
+						}
+					}
+					else
+					{
+						// WARNING missed framerate
+						// TODO must handle it 
+					}
+
 					win32_window_dimension Dimension = Win32GetWindowDimension(Window);
 					HDC DeviceContext = GetDC(Window);
 					Win32DisplayBufferInWindow(&GlobalBackBuffer, DeviceContext, 
-							Dimension.Width, Dimension.Height);
+												Dimension.Width, Dimension.Height);
 					ReleaseDC(Window, DeviceContext);
-
-					uint64_t EndCycleCount = __rdtsc();
-
-					// TODO Display the value here
-					LARGE_INTEGER EndCounter;
-					QueryPerformanceCounter(&EndCounter);
-
-					uint64_t CyclesElapsed = EndCycleCount - LastCycleCount;
-					int64_t CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
-					int32_t MSPerFrame = (int32_t)((1000*CounterElapsed)/PerfCounterFrequency);
-					int32_t FPS = (uint32_t)(PerfCounterFrequency / CounterElapsed);
-					int32_t MCPS = (int32_t)CyclesElapsed / (1000 * 1000);
-
-#if 0
-					char Buffer[256];
-					wsprintf(Buffer, "%dms/f, %df/s, %dmc/f\n", MSPerFrame, FPS, MCPS);
-					OutputDebugStringA(Buffer);
-#endif
-
-					LastCounter = EndCounter;
-					LastCycleCount = EndCycleCount;
-
+					
 					game_input *Temp = NewInput;
 					NewInput = OldInput;
 					OldInput = Temp;
-					// TODO should we clear this here
+
+					LARGE_INTEGER EndCounter = Win32GetWallClock();
+					real32 MSPerFrame = 1000.0f * Win32GetSecondsElapsed(LastCounter, EndCounter);
+					LastCounter = EndCounter;
+
+					uint64_t EndCycleCount = __rdtsc();
+					uint64_t CyclesElapsed = EndCycleCount - LastCycleCount;
+					LastCycleCount = EndCycleCount;
+
+					real64 FPS = 0.0f;
+					real64 MCPS = (int32_t)CyclesElapsed / (1000 * 1000);
+
+					char FPSBuffer[256];
+					_snprintf_s (FPSBuffer, sizeof(FPSBuffer), 
+								"%.02fms/f, %.02ff/s, %.02fmc/f\n", MSPerFrame, FPS, MCPS);
+					OutputDebugStringA(FPSBuffer);
 				}
 			} else {
 				// TODO Memory cannot be initialized

@@ -2,14 +2,14 @@
 #if !defined(HANDMADE_H)
 
 /*
-HANDMADE_INTERNAL:
-0 - Build for the public release
-1 - Build for developer only
+	HANDMADE_INTERNAL:
+	0 - Build for the public release
+	1 - Build for developer only
 
-HANDMADE_SLOW:
-0 - No Slow Code allowed
-1 - Slow code allowed
- */
+	HANDMADE_SLOW:
+	0 - No Slow Code allowed
+	1 - Slow code allowed
+*/
 
 #if HANDMADE_SLOW
 #define Assert(Expression) if(!(Expression)) {*(int*)0 = 0;}
@@ -33,13 +33,13 @@ inline uint32_t SafeTruncateUInt64 (uint64_t Value) {
 
 /* 
    TODO Services that the platform layer provides to the game
- */
+*/
 
 #if HANDMADE_INTERNAL
 /*
-   These are not for doing anything in the shipping game - they are blocking and the write doesn't
+   NOTE These are not for doing anything in the shipping game - they are blocking and the write doesn't
    protect against lost data!
- */
+*/
 
 struct debug_read_file_result {
 	uint32_t ContentsSize;
@@ -105,7 +105,6 @@ struct game_controller_input {
 
 			game_button_state Start;
 			game_button_state Back;
-
 
 			// WARNING All buttons must be added above this line, the Terminator button must not
 			// be used except for assertions
