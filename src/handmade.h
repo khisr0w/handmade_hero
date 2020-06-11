@@ -21,7 +21,6 @@ inline uint32_t SafeTruncateUInt64 (uint64_t Value) {
 
 	Assert(Value <= 0xFFFFFFFF);
 	return (uint32_t)Value;
-
 }
 // TODO should this always be 64-bit?
 #define Kilobytes(Value) ((Value) * 1024LL)
