@@ -53,7 +53,7 @@ internal bool32 DEBUGPlatformWriteEntireFile(char *Filename, uint32_t MemorySize
 
 /* 
    Services that the game provide to the platform layer
- */
+*/
 
 // FOUR THINGS - Timing, Controller/Keyboard, Bitmap buffer to use, Sound Buffer to use
 
@@ -136,9 +136,10 @@ struct game_memory {
 	void *TransientStorage; // This memory is required to be zero at startup
 };
 
-internal void 
-GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, 
-		game_sound_output_buffer *SoundBuffer);
+internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer);
+
+// NOTE at the moment this has to be a fase function, it cannot be more than a millisecond or so.
+internal void GameGetSoundSamples(game_memory *Memory, game_sound_output_buffer *SoundBuffer);
 
 struct game_state {
 	int ToneHz;
