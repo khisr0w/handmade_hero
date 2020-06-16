@@ -10,7 +10,10 @@ pushd bin
 echo ========================================================================
 REM 32-bit build
 REM cl %CommonCompilerFlags% ..\src\win32_handmade.cpp /link -subsystem:windows,5.1 %CommonLinkerFlags%
+
 REM 64-bit build
-cl %CommonCompilerFlags% ..\src\handmade.cpp -Fmhandmade.map /LD /link /EXPORT:GameUpdateAndRender /EXPORT:GameGetSoundSamples
+del *.pdb > NUL 2> NUL
+set VAR=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~1,1%%time:~3,2%%time:~6,2%%time:~9,2%
+cl %CommonCompilerFlags% ..\src\handmade.cpp -Fmhandmade.map /LD /link -incremental:no /PDB:handmade_%VAR%.pdb -EXPORT:GameUpdateAndRender -EXPORT:GameGetSoundSamples
 cl %CommonCompilerFlags% ..\src\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
 popd
