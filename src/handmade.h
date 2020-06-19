@@ -37,6 +37,12 @@ inline uint32_t SafeTruncateUInt64 (uint64_t Value) {
 	Assert(Value <= 0xFFFFFFFF);
 	return (uint32_t)Value;
 }
+
+struct thread_context
+{
+	int Placeholder;
+};
+
 // TODO should this always be 64-bit?
 #define Kilobytes(Value) ((Value) * 1024LL)
 #define Megabytes(Value) (Kilobytes(Value) * 1024LL)
@@ -60,13 +66,15 @@ struct debug_read_file_result {
 	void* Contents;
 };
 
-#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void *Memory)
+#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *Thread, void *Memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(char *Filename)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context *Thread, \
+	   																	  char *Filename)
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *Filename, uint32_t MemorySize, void *Memory)
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name (thread_context *Thread, char *Filename, \
+															uint32_t MemorySize, void *Memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 #endif
@@ -132,8 +140,10 @@ struct game_controller_input {
 	};
 };
 
-struct game_input {
-
+struct game_input 
+{
+	game_button_state MouseButtons[5];
+	int32_t MouseX, MouseY, MouseZ;
 	// TODO Insert game clock values in here
 	game_controller_input Controllers[5];
 };
@@ -160,22 +170,16 @@ struct game_memory {
 	debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
 };
 
-#define GAME_UPDATE_AND_RENDER(name) void name (game_memory *Memory, game_input *Input, \
-												game_offscreen_buffer *Buffer)
-typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
-GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
-{
 
-}
+#define GAME_UPDATE_AND_RENDER(name) void name (thread_context *Thread, game_memory *Memory,\
+												game_input *Input, game_offscreen_buffer *Buffer)
+typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 // NOTE at the moment this has to be a fase function, it cannot be more than a millisecond or so.
 
-#define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *Memory, game_sound_output_buffer *SoundBuffer)
+#define GAME_GET_SOUND_SAMPLES(name) void name (thread_context *Thread, game_memory *Memory,\
+												game_sound_output_buffer *SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
-GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub)
-{
-
-}
 
 struct game_state {
 	int ToneHz;

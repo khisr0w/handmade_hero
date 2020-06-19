@@ -11,7 +11,7 @@ internal void GameOutputSound(game_state * GameState, game_sound_output_buffer *
 			SampleIndex < SoundBuffer->SampleCountToOutput; 
 			++SampleIndex) {
 
-#if 0
+#if 1
 		real32 SineValue = sinf(GameState->tSine);
 		int16_t SampleValue = (int16_t)(SineValue * ToneVolume); 
 #else
@@ -41,7 +41,7 @@ internal void RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, in
 			uint8_t Blue = (uint8_t)(X + XOffset);
 			uint8_t Green = (uint8_t)(Y + YOffset);
 			// Coloring scheme is BGR because fuck windows
-			*Pixel++ = ((Green << 16) | Blue);
+			*Pixel++ = ((Green << 8) | Blue);
 		}
 		Row += Buffer->Pitch;
 	}
@@ -88,11 +88,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 		char *Filename = __FILE__;
 
-		debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Filename);
+		debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Thread, Filename);
 		if (File.Contents) {
 
-			Memory->DEBUGPlatformWriteEntireFile("Handmade_COPY.cpp", File.ContentsSize, File.Contents);
-			Memory->DEBUGPlatformFreeFileMemory(File.Contents);
+			Memory->DEBUGPlatformWriteEntireFile(Thread, "Handmade_COPY.cpp", File.ContentsSize, File.Contents);
+			Memory->DEBUGPlatformFreeFileMemory(Thread, File.Contents);
 		}
 
 		GameState->ToneHz = 256;
@@ -146,6 +146,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	}
 	RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 	RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY);
+	RenderPlayer(Buffer, Input->MouseX, Input->MouseY);
+
+	for(int ButtonIndex = 0;
+		ButtonIndex < ArrayCount(Input->MouseButtons);
+		++ButtonIndex)
+	{
+		if(Input->MouseButtons[ButtonIndex].EndedDown)
+		{
+			RenderPlayer(Buffer, 10 + 20 * ButtonIndex, 10);
+		}
+	}
+	
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
