@@ -160,7 +160,6 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
 	} else {
 		// TODO Logging
 	}
-
 	return Result;
 }
 
@@ -933,7 +932,7 @@ int CALLBACK WinMain(
 	// Making a window class
 	WNDCLASS WindowClass = {};
 
-	Win32ResizeDIBSection(&GlobalBackBuffer, 1280, 720);
+	Win32ResizeDIBSection(&GlobalBackBuffer, 960, 540);
 
 	WindowClass.style = CS_HREDRAW|CS_VREDRAW;
 	WindowClass.lpfnWndProc= Win32MainWindowCallback;
@@ -1068,6 +1067,7 @@ int CALLBACK WinMain(
 				game_input Input[2] = {};
 				game_input *NewInput = &Input[0];
 				game_input *OldInput = &Input[1];
+				NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
 
 				LARGE_INTEGER FlipWallClock = Win32GetWallClock();
 				LARGE_INTEGER LastCounter = Win32GetWallClock();
