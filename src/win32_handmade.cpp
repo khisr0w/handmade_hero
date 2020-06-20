@@ -185,7 +185,6 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
 	} else {
 		// TODO Logging
 	}
-
 	return Result;
 }
 
