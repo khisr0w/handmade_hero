@@ -389,6 +389,13 @@ internal void Win32ResizeDIBSection (win32_offscreen_buffer *Buffer, int Width, 
 
 internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer, HDC DeviceContext,
 										 int WindowWidth, int WindowHeight) {
+	int OffsetX = 10;
+	int OffsetY = 10;
+	PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+	PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
+	PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+	PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+
 	// NOTE For prototyping stage we always want to blit 1 to 1
 	// to remove the possibility of artifacts
 	StretchDIBits(
@@ -396,8 +403,8 @@ internal void Win32DisplayBufferInWindow(win32_offscreen_buffer *Buffer, HDC Dev
 			/*
 			   X, Y, Width, Height,
 			   X, Y, Width, Height,
-			 */
-			0, 0, Buffer->Width, Buffer->Height,
+			*/
+			OffsetX, OffsetY, Buffer->Width, Buffer->Height,
 			0, 0, Buffer->Width, Buffer->Height,
 			Buffer->Memory,
 			&Buffer->Info,
