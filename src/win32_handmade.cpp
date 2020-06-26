@@ -593,6 +593,7 @@ Win32GetInputFileLocation(win32_state *State, bool32 InputStream, int SlotIndex,
 internal win32_replay_buffer *
 Win32GetReplayBuffer(win32_state *State, int unsigned Index)
 {
+	Assert(Index > 0);
 	Assert(Index < ArrayCount(State->ReplayBuffers));
 	win32_replay_buffer *Result = &State->ReplayBuffers[Index];
 	return Result;
@@ -1037,7 +1038,7 @@ int CALLBACK WinMain(
 			GameMemory.TransientStorage = ((uint8_t *)GameMemory.PermanentStorage + 
 					GameMemory.PermanentStorageSize);
 
-			for(int ReplayIndex = 0;
+			for(int ReplayIndex = 1;
 				ReplayIndex < ArrayCount(Win32State.ReplayBuffers);
 				++ReplayIndex)
 			{
