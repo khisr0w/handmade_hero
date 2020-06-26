@@ -14,6 +14,7 @@ REM cl %CommonCompilerFlags% ..\src\win32_handmade.cpp /link -subsystem:windows,
 REM 64-bit build
 del *.pdb > NUL 2> NUL
 set VAR=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~1,1%%time:~3,2%%time:~6,2%%time:~9,2%
+REM Optimization Switches /O2 /fp:fast
 cl %CommonCompilerFlags% ..\src\handmade.cpp -Fmhandmade.map /LD /link -incremental:no /PDB:handmade_%VAR%.pdb -EXPORT:GameUpdateAndRender -EXPORT:GameGetSoundSamples
 cl %CommonCompilerFlags% ..\src\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
 popd
