@@ -254,12 +254,12 @@ internal void Win32LoadXInput(void) {
 	HMODULE XInputLibrary = LoadLibraryA("xinput1_3.dll");
 	if(!XInputLibrary) {
 
-		HMODULE XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
+		XInputLibrary = LoadLibraryA("xinput9_1_0.dll");
 	}
 
 	if(!XInputLibrary) {
 
-		HMODULE XInputLibrary = LoadLibraryA("xinput1_4.dll");
+		XInputLibrary = LoadLibraryA("xinput1_4.dll");
 	}
 
 	if(XInputLibrary) {
@@ -1396,7 +1396,7 @@ int CALLBACK WinMain(
 						DWORD UnWrappedWriteCursor = WriteCursor;
 						if (UnWrappedWriteCursor < PlayCursor)
 						{
-							DWORD UnWrappedWriteCursor = SoundOutput.SecondaryBufferSize;
+							UnWrappedWriteCursor = SoundOutput.SecondaryBufferSize;
 						}
 						AudioLatencyBytes = UnWrappedWriteCursor - PlayCursor;
 						AudioLatencySeconds = 
@@ -1470,8 +1470,6 @@ int CALLBACK WinMain(
 					FlipWallClock = Win32GetWallClock();
 #if HANDMADE_INTERNAL
 					{
-						DWORD PlayCursor;
-						DWORD WriteCursor;
 						if(GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor) == DS_OK)
 						{
 							Assert(DebugTimeMarkersIndex < ArrayCount(DebugTimeMarkers));

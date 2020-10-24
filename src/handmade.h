@@ -47,49 +47,50 @@ inline game_controller_input *GetController (game_input *Input, int unsigned Con
 	return Result;
 }
 
-struct canonical_position
+struct tile_chunk_position
 {
-#if 1
-	int32_t TileMapX;
-	int32_t TileMapY;
+	uint32_t TileChunkX;
+	uint32_t TileChunkY;
 
-	int32_t TileX;
-	int32_t TileY;
-#else
-	uint32_t _TileY;
-	uint32_t _TileX;
-#endif
+	uint32_t RelTileX;
+	uint32_t RelTileY;
+};
+
+struct world_position
+{
+	uint32_t AbsTileY;
+	uint32_t AbsTileX;
 
 	// NOTE This is Tile-relative X and Y
+	// TODO rename to Offset
 	real32 TileRelX;
    	real32 TileRelY;
 };
 
-struct tile_map
+struct tile_chunk
 {
 	uint32_t *Tiles;
 };
 
 struct world
 {
+	uint32_t ChunkShift;
+	uint32_t ChunkMask;
+	uint32_t ChunkDim;
+
 	real32 TileSideInMeters;
 	int32_t TileSideInPixels;
 	real32 MetersToPixels;
 
-	int32_t CountX;
-	int32_t CountY;
+	int32_t TileChunkCountX;
+	int32_t TileChunkCountY;
 
-	real32 UpperLeftX;
-	real32 UpperLeftY; 
-	int32_t TileMapCountX;
-	int32_t TileMapCountY;
-
-	tile_map *TileMaps;
+	tile_chunk *TileChunks;
 };
 
 struct game_state
 {
-	canonical_position PlayerP;
+	world_position PlayerP;
 };
 
 #define HANDMADE_H
