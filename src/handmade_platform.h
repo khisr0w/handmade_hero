@@ -21,6 +21,8 @@ typedef char bool8;
 typedef float real32;
 typedef double real64;
 
+typedef size_t memory_index;
+
 typedef struct thread_context
 {
 	int Placeholder;

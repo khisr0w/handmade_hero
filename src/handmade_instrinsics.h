@@ -6,13 +6,13 @@
 inline int32_t
 RoundReal32ToInt32(real32 Real32)
 {
-	return (int32_t)(Real32 + 0.5f);
+	return (int32_t)roundf(Real32);
 }
 
 inline uint32_t
 RoundReal32ToUInt32(real32 Real32)
 {
-	return (uint32_t)(Real32 + 0.5f);
+	return (uint32_t)roundf(Real32);
 }
 
 inline uint32_t

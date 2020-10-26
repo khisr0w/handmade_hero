@@ -1,7 +1,7 @@
 cls
 @echo off
 
-set CommonCompilerFlags= -MTd -Gm- -nologo -GR- -EHa- -Od -Oi -FC -Z7 -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DHANDMADE_WIN32=1 -DHANDMADE_SLOW=1 -DHANDMADE_INTERNAL=1 
+set CommonCompilerFlags= -MTd -Gm- -nologo -fp:fast -GR- -EHa- -Od -Oi -FC -Z7 -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DHANDMADE_WIN32=1 -DHANDMADE_SLOW=1 -DHANDMADE_INTERNAL=1 
 set CommonLinkerFlags= -incremental:no -opt:ref  user32.lib Gdi32.lib winmm.lib	
 
 cd ..
@@ -14,7 +14,7 @@ REM cl %CommonCompilerFlags% ..\src\win32_handmade.cpp /link -subsystem:windows,
 REM 64-bit build
 del *.pdb > NUL 2> NUL
 set VAR=%date:~10,4%%date:~4,2%%date:~7,2%_%time:~1,1%%time:~3,2%%time:~6,2%%time:~9,2%
-REM Optimization Switches /O2 /Oi /fp:fast
+REM Optimization Switches /O2
 cl %CommonCompilerFlags% ..\src\handmade.cpp -Fmhandmade.map /LD /link -incremental:no /PDB:handmade_%VAR%.pdb -EXPORT:GameUpdateAndRender -EXPORT:GameGetSoundSamples
 cl %CommonCompilerFlags% ..\src\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
 popd
