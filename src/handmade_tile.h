@@ -4,17 +4,19 @@ struct tile_map_position
 	// the tile chunk index, and the low bits bits are the tile index in the chunk.
 	uint32_t AbsTileY;
 	uint32_t AbsTileX;
+	uint32_t AbsTileZ;
 
 	// NOTE This is Tile-relative X and Y
 	// TODO rename to Offset
-	real32 TileRelX;
-   	real32 TileRelY;
+	real32 OffsetX;
+   	real32 OffsetY;
 };
 
 struct tile_chunk_position
 {
 	uint32_t TileChunkX;
 	uint32_t TileChunkY;
+	uint32_t TileChunkZ;
 
 	uint32_t RelTileX;
 	uint32_t RelTileY;
@@ -32,11 +34,10 @@ struct tile_map
 	uint32_t ChunkDim;
 
 	real32 TileSideInMeters;
-	int32_t TileSideInPixels;
-	real32 MetersToPixels;
 
+	// TODO Real Sparseness
 	uint32_t TileChunkCountX;
 	uint32_t TileChunkCountY;
-
+	uint32_t TileChunkCountZ;
 	tile_chunk *TileChunks;
 };

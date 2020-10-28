@@ -1,5 +1,6 @@
 #include "handmade.h"
 #include "handmade_tile.cpp"
+#include "handmade_random.h"
 
 internal void GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz)
 {
@@ -78,23 +79,34 @@ DrawRect(game_offscreen_buffer *Buffer,
 	}
 }
 
-internal void
-InitializeArena(memory_arena *Arena, memory_index Size, uint8_t *Base)
+#pragma pack(push, 1)
+struct bitmap_header
 {
-	Arena->Size = Size;
-	Arena->Base = Base;
-	Arena->Used = 0;
-}
+	uint16_t FileType; 
+	uint32_t FileSize;
+	uint16_t Reserved1;
+	uint16_t Reserved2;
+	uint32_t BitmapOffset;
+	uint32_t Size; 
+	int32_t Width;
+	int32_t Height;
+	uint16_t Planes;
+	uint16_t BitsPerPixel;
+};
+#pragma pack(pop)
 
-#define PushStruct(Arena, type) (type *)PushSize_(Arena, sizeof(type))
-#define PushArray(Arena, Count, type) (type *)PushSize_(Arena, Count*sizeof(type))
-void *
-PushSize_(memory_arena *Arena, memory_index Size)
+internal uint32_t *
+DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntireFile, char *Filename)
 {
-	Assert((Arena->Used + Size) <= Arena->Size);
-	void *Result = Arena->Base + Arena->Used;
-	Arena->Used += Size;
+	uint32_t *Result = 0;
 
+	debug_read_file_result ReadResult = ReadEntireFile(Thread, Filename);
+	if(ReadResult.ContentsSize != 0)
+	{
+		bitmap_header *Header = (bitmap_header *)ReadResult.Contents;
+		uint32_t *Pixels = (uint32_t *)((uint8_t *)ReadResult.Contents + Header->BitmapOffset);
+		Result = Pixels;
+	}
 	return Result;
 }
 
@@ -110,10 +122,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 	if(!Memory->IsInitialized)
 	{
-		GameState->PlayerP.AbsTileX = 16;
+		GameState->PixelPointer = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+											   "handmade_hero_legacy_art/early_data/test/test_background.bmp");
+
+		GameState->PlayerP.AbsTileX = 6;
 		GameState->PlayerP.AbsTileY = 6;
-		GameState->PlayerP.TileRelX = 5.0f;
-		GameState->PlayerP.TileRelY = 5.0f;
+		GameState->PlayerP.AbsTileZ = 0;
+		GameState->PlayerP.OffsetX = 0.5f;
+		GameState->PlayerP.OffsetY = 0.5f;
 		InitializeArena(&GameState->WorldArena, Memory->PermanentStorageSize - sizeof(game_state),
 						(uint8_t *)Memory->PermanentStorage + sizeof(game_state));
 
@@ -126,57 +142,149 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		TileMap->ChunkShift = 4;
 		TileMap->ChunkMask = (1 << TileMap->ChunkShift) - 1;
 		TileMap->ChunkDim = (1 << TileMap->ChunkShift);
+		TileMap->TileSideInMeters = 1.4f;
 
 		TileMap->TileChunkCountX = 128;
 		TileMap->TileChunkCountY = 128;
+		TileMap->TileChunkCountZ = 2;
 
 		TileMap->TileChunks = PushArray(&GameState->WorldArena,
-										TileMap->TileChunkCountX*TileMap->TileChunkCountX, tile_chunk);
+										TileMap->TileChunkCountX*
+										TileMap->TileChunkCountX*
+										TileMap->TileChunkCountZ,
+										tile_chunk);
 
-		for(uint32_t Y = 0;
-			Y < TileMap->TileChunkCountY;
-			++Y)
-		{
-			for(uint32_t X = 0;
-				X < TileMap->TileChunkCountX;
-				++X)
-			{
-				TileMap->TileChunks[Y*TileMap->TileChunkCountX + X].Tiles =
-					PushArray(&GameState->WorldArena, TileMap->ChunkDim*TileMap->ChunkDim, uint32_t);
-			}
-		}
-
-		TileMap->TileSideInMeters = 1.4f;
-		TileMap->TileSideInPixels = 60;
-		TileMap->MetersToPixels = (real32)TileMap->TileSideInPixels / (real32)TileMap->TileSideInMeters;
-
-		real32 LowerLeftX = -(real32)TileMap->TileSideInPixels / 2;
-		real32 LowerLeftY = (real32)Buffer->Height;
-
+		uint32_t RandomNumberIndex = 0;
 		uint32_t TilesPerWidth = 17;
 		uint32_t TilesPerHeight = 9;
-		for(uint32_t ScreenY = 0;
-			ScreenY < 32;
-			++ScreenY)
+		uint32_t ScreenX = 0;
+		uint32_t ScreenY = 0;
+		uint32_t AbsTileZ = 0;
+
+		bool32 DoorLeft = false;
+		bool32 DoorRight = false;
+		bool32 DoorTop = false;
+		bool32 DoorBottom = false;
+		bool32 DoorUp = false;
+		bool32 DoorDown = false;
+		for(uint32_t ScreenIndex = 0;
+			ScreenIndex < 100;
+			++ScreenIndex)
 		{
-			for(uint32_t ScreenX = 0;
-				ScreenX < 32;
-				++ScreenX)
+			Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+			uint32_t RandomChoice;
+			if (DoorUp || DoorDown)
 			{
-				for(uint32_t TileY = 0;
-					TileY < TilesPerHeight;
-					++TileY)
+				RandomChoice = RandomNumberTable[RandomNumberIndex++] % 2;
+			}
+			else
+			{
+				RandomChoice = RandomNumberTable[RandomNumberIndex++] % 3;
+			}
+
+			bool32 CreatedZDoor = false;
+			if(RandomChoice == 2)
+			{
+				CreatedZDoor = true;
+				if(AbsTileZ == 0)
 				{
-					for(uint32_t TileX = 0;
-						TileX < TilesPerWidth;
-						++TileX)
-					{
-						uint32_t AbsTileX = ScreenX*TilesPerWidth + TileX;
-						uint32_t AbsTileY = ScreenY*TilesPerHeight + TileY;
-						SetTileValue(&GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY,
-									(TileX == TileY) && (TileY % 2) ? 1 : 0);
-					}
+					DoorUp = true;
 				}
+				else
+				{
+					DoorDown = true;
+				}
+			}
+			else if(RandomChoice == 1)
+			{
+				DoorRight = true;
+			}
+			else
+			{
+				DoorTop = true;
+			}
+
+			for(uint32_t TileY = 0;
+				TileY < TilesPerHeight;
+				++TileY)
+			{
+				for(uint32_t TileX = 0;
+					TileX < TilesPerWidth;
+					++TileX)
+				{
+					uint32_t AbsTileX = ScreenX*TilesPerWidth + TileX;
+					uint32_t AbsTileY = ScreenY*TilesPerHeight + TileY;
+
+					uint32_t TileValue = 1;
+					if((TileX == 0) && (!DoorLeft || (TileY != (TilesPerHeight/2))))
+					{
+						TileValue = 2;
+					}
+					if((TileX == (TilesPerWidth - 1)) && (!DoorRight || (TileY != (TilesPerHeight/2))))
+					{
+						TileValue = 2;
+					}
+
+					if((TileY == 0) && (!DoorBottom || (TileX != (TilesPerWidth/2))))
+					{
+						TileValue = 2;
+					}
+					if((TileY == TilesPerHeight - 1) && (!DoorTop || (TileX != (TilesPerWidth/2))))
+					{
+						TileValue = 2;
+					}
+					if((TileX == 10) && (TileY == 6))
+					{
+						if(DoorUp)
+						{
+							TileValue = 3;
+						}
+						else if(DoorDown)
+						{
+							TileValue = 4;
+						}
+					}
+
+					SetTileValue(&GameState->WorldArena, World->TileMap,
+							AbsTileX, AbsTileY, AbsTileZ, TileValue);
+				}
+			}
+
+			DoorLeft = DoorRight;
+			DoorBottom = DoorTop;
+
+			if(CreatedZDoor)
+			{
+				DoorDown = !DoorDown;
+				DoorUp = !DoorUp;
+			}
+			else
+			{
+				DoorUp = false;
+				DoorDown = false;
+			}
+
+			DoorRight = false;
+			DoorTop = false;
+
+			if(RandomChoice == 2)
+			{
+				if(AbsTileZ == 0)
+				{
+					AbsTileZ = 1;
+				}
+				else
+				{
+					AbsTileZ = 0;
+				}
+			}
+			else if(RandomChoice == 1)
+			{
+				ScreenX += 1;
+			}
+			else
+			{
+				ScreenY += 1;
 			}
 		}
 
@@ -185,6 +293,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	world *World = GameState->World;
 	tile_map *TileMap = World->TileMap;
+
+	int32_t TileSideInPixels = 60;
+	real32 MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
+
+	real32 LowerLeftX = -(real32)TileSideInPixels / 2;
+	real32 LowerLeftY = (real32)Buffer->Height;
 
 	for (int ControllerIndex = 0;
 		 ControllerIndex < ArrayCount(Input->Controllers);
@@ -227,22 +341,34 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 			// TODO Diagonal will be faster! Fix once we have vectors
 			tile_map_position NewPlayerP = GameState->PlayerP;
-			NewPlayerP.TileRelX += dPlayerX * Input->dtForFrame;
-			NewPlayerP.TileRelY += dPlayerY * Input->dtForFrame;
+			NewPlayerP.OffsetX += dPlayerX * Input->dtForFrame;
+			NewPlayerP.OffsetY += dPlayerY * Input->dtForFrame;
 			NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
 
 			tile_map_position PlayerLeft = NewPlayerP;
-			PlayerLeft.TileRelX -= 0.5f*PlayerWidth;
+			PlayerLeft.OffsetX -= 0.5f*PlayerWidth;
 			PlayerLeft = RecanonicalizePosition(TileMap, PlayerLeft);
 
 			tile_map_position PlayerRight = NewPlayerP;
-			PlayerRight.TileRelX += 0.5f*PlayerWidth;
+			PlayerRight.OffsetX += 0.5f*PlayerWidth;
 			PlayerRight = RecanonicalizePosition(TileMap, PlayerRight);
 
 			if (IsTileMapPointEmpty(TileMap, NewPlayerP) &&
 				IsTileMapPointEmpty(TileMap, PlayerLeft) &&
 				IsTileMapPointEmpty(TileMap, PlayerRight))
 			{
+				if(!AreOnSameTile(&GameState->PlayerP, &NewPlayerP))
+				{
+					uint32_t NewTileValue = GetTileValue(TileMap, NewPlayerP);
+					if(NewTileValue == 3)
+					{
+						++NewPlayerP.AbsTileZ;
+					}
+					else if(NewTileValue == 4)
+					{
+						--NewPlayerP.AbsTileZ;
+					}
+				}
 				GameState->PlayerP = NewPlayerP;
 			}
 		}
@@ -263,26 +389,34 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		{
 			uint32_t Column = GameState->PlayerP.AbsTileX + RelColumn;
 			uint32_t Row = GameState->PlayerP.AbsTileY + RelRow;
-			uint32_t TileID = GetTileValue(TileMap, Column, Row);
-			real32 Gray = 0.5f;
-			if(TileID == 1)
+			uint32_t TileID = GetTileValue(TileMap, Column, Row, GameState->PlayerP.AbsTileZ);
+			if(TileID > 0)
 			{
-				Gray = 1.0f;
-			}
+				real32 Gray = 0.5f;
+				if(TileID == 2)
+				{
+					Gray = 1.0f;
+				}
 
-			if((Column == GameState->PlayerP.AbsTileX) &&
-			   (Row == GameState->PlayerP.AbsTileY))
-			{
-				Gray = 0.f;
-			}
+				if(TileID > 2)
+				{
+					Gray = 0.25f;
+				}
 
-			real32 CenX = ScreenCenterX + ((real32)RelColumn)*TileMap->TileSideInPixels - GameState->PlayerP.TileRelX*TileMap->MetersToPixels;
-			real32 CenY = ScreenCenterY - ((real32)RelRow)*TileMap->TileSideInPixels + GameState->PlayerP.TileRelY*TileMap->MetersToPixels;
-			real32 MinX = CenX - 0.5f*TileMap->TileSideInPixels;
-			real32 MinY = CenY - 0.5f*TileMap->TileSideInPixels;
-			real32 MaxX = CenX + 0.5f*TileMap->TileSideInPixels;
-			real32 MaxY = CenY + 0.5f*TileMap->TileSideInPixels;
-			DrawRect(Buffer, MinX, MinY, MaxX, MaxY, Gray, Gray, Gray);
+				if((Column == GameState->PlayerP.AbsTileX) &&
+						(Row == GameState->PlayerP.AbsTileY))
+				{
+					Gray = 0.f;
+				}
+
+				real32 CenX = ScreenCenterX + ((real32)RelColumn)*TileSideInPixels - GameState->PlayerP.OffsetX*MetersToPixels;
+				real32 CenY = ScreenCenterY - ((real32)RelRow)*TileSideInPixels + GameState->PlayerP.OffsetY*MetersToPixels;
+				real32 MinX = CenX - 0.5f*TileSideInPixels;
+				real32 MinY = CenY - 0.5f*TileSideInPixels;
+				real32 MaxX = CenX + 0.5f*TileSideInPixels;
+				real32 MaxY = CenY + 0.5f*TileSideInPixels;
+				DrawRect(Buffer, MinX, MinY, MaxX, MaxY, Gray, Gray, Gray);
+			}
 		}
 	}
 
@@ -290,16 +424,31 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	real32 PlayerG = 1.0f;
 	real32 PlayerB = 0.0f;
 	real32 PlayerLeft = ScreenCenterX
-						// + TileMap->MetersToPixels*GameState->PlayerP.TileRelX
-						- 0.5f*TileMap->MetersToPixels*PlayerWidth;
+						// + MetersToPixels*GameState->PlayerP.OffsetX
+						- 0.5f*MetersToPixels*PlayerWidth;
 	real32 PlayerTop = ScreenCenterY
-					   // - TileMap->MetersToPixels*GameState->PlayerP.TileRelY
-					   - TileMap->MetersToPixels*PlayerHeight;
+					   // - MetersToPixels*GameState->PlayerP.OffsetY
+					   - MetersToPixels*PlayerHeight;
 	DrawRect(Buffer, 
 			 PlayerLeft, PlayerTop,
-			 PlayerLeft + PlayerWidth * TileMap->MetersToPixels,
-			 PlayerTop + PlayerHeight*TileMap->MetersToPixels,
+			 PlayerLeft + PlayerWidth * MetersToPixels,
+			 PlayerTop + PlayerHeight*MetersToPixels,
 			 PlayerR, PlayerG, PlayerB);
+#if 0
+	uint32_t *Source = GameState->PixelPointer;
+	uint32_t *Dest = (uint32_t *)Buffer->Memory;
+	for(int32_t Y = 0;
+		Y < Buffer->Height;
+		Y++)
+	{
+		for(int32_t X = 0;
+			X < Buffer->Width;
+			X++)
+		{
+			*Dest++ = *Source++;
+		}
+	}
+#endif
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
