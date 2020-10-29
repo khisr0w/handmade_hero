@@ -86,13 +86,25 @@ struct world
 	tile_map *TileMap;
 };
 
+struct loaded_bitmap
+{
+	int32_t Width;
+	int32_t Height;
+	uint32_t *Pixels;
+};
+
 struct game_state
 {
 	memory_arena WorldArena;
 	world* World;
-	uint32_t *PixelPointer;
 
 	tile_map_position PlayerP;
+
+	loaded_bitmap BackDrop;
+
+	loaded_bitmap HeroHead;
+	loaded_bitmap HeroCape;
+	loaded_bitmap HeroTorso;
 };
 
 #define HANDMADE_H
