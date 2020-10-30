@@ -1,32 +1,7 @@
 // This is the header file for the platform independent layer
+#if !defined(HANDMADE_H)
 
 #include "handmade_platform.h"
-
-#define local_persist static 
-#define global_var static
-#define internal static
-#define PI32 3.14159265359f
-
-// TODO should this always be 64-bit?
-#define Kilobytes(Value) ((Value) * 1024LL)
-#define Megabytes(Value) (Kilobytes(Value) * 1024LL)
-#define Gigabytes(Value) (Megabytes(Value) * 1024LL)
-#define Terabytes(Value) (Gigabytes(Value) * 1024LL)
-
-#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-
-#if !defined(HANDMADE_H)
-#if HANDMADE_SLOW
-#define Assert(Expression) if(!(Expression)) {*(int*)0 = 0;}
-#else
-#define Assert(Expression)
-#endif
-
-inline uint32_t SafeTruncateUInt64 (uint64_t Value)
-{
-	Assert(Value <= 0xFFFFFFFF);
-	return (uint32_t)Value;
-}
 
 /* 
    TODO Services that the platform layer provides to the game
@@ -38,14 +13,6 @@ inline uint32_t SafeTruncateUInt64 (uint64_t Value)
 */
 
 // FOUR THINGS - Timing, Controller/Keyboard, Bitmap buffer to use, Sound Buffer to use
-
-inline game_controller_input *GetController (game_input *Input, int unsigned ControllerIndex)
-{
-	Assert(ControllerIndex < ArrayCount(Input->Controllers));
-
-	game_controller_input *Result = &Input->Controllers[ControllerIndex];
-	return Result;
-}
 
 //
 //
@@ -93,18 +60,27 @@ struct loaded_bitmap
 	uint32_t *Pixels;
 };
 
+struct hero_bitmaps
+{
+	int32_t AlignX;
+	int32_t AlignY;
+
+	loaded_bitmap Head;
+	loaded_bitmap Cape;
+	loaded_bitmap Torso;
+};
+
 struct game_state
 {
 	memory_arena WorldArena;
 	world* World;
 
+	tile_map_position CameraP;
 	tile_map_position PlayerP;
 
 	loaded_bitmap BackDrop;
-
-	loaded_bitmap HeroHead;
-	loaded_bitmap HeroCape;
-	loaded_bitmap HeroTorso;
+	uint32_t HeroFacingDirection;
+	hero_bitmaps HeroBitmaps[4];
 };
 
 #define HANDMADE_H

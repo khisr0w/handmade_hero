@@ -19,7 +19,7 @@
    NOT A COMPLETE LIST!!!
 */
 
-#include "handmade.h"
+#include "handmade_platform.h"
 
 #include <stdio.h>
 #include <windows.h>
@@ -209,23 +209,28 @@ Win32GetLastWriteTime(char *Filename)
 	return LastWriteTime;
 }
 
-internal win32_game_code Win32LoadGameCode(char *SourceDLLName, char *TempDLLName)
+internal win32_game_code
+Win32LoadGameCode(char *SourceDLLName, char *TempDLLName, char *LockFileName)
 {
 	win32_game_code Result = {};
 
-	Result.DLLLastWriteTime = Win32GetLastWriteTime(SourceDLLName);
-	
-	CopyFile(SourceDLLName, TempDLLName, FALSE);
-	Result.GameCodeDLL = LoadLibraryA(TempDLLName);
-	if(Result.GameCodeDLL)
+	WIN32_FILE_ATTRIBUTE_DATA Ignored;
+	if(!GetFileAttributesEx(LockFileName, GetFileExInfoStandard, &Ignored))
 	{
-		Result.UpdateAndRender = 
-			(game_update_and_render *)GetProcAddress(Result.GameCodeDLL, "GameUpdateAndRender");
-		Result.GetSoundSamples = 
-			(game_get_sound_samples *)GetProcAddress(Result.GameCodeDLL, "GameGetSoundSamples");
-	}
+		Result.DLLLastWriteTime = Win32GetLastWriteTime(SourceDLLName);
 
-	Result.IsValid = (Result.UpdateAndRender && Result.GetSoundSamples);
+		CopyFile(SourceDLLName, TempDLLName, FALSE);
+		Result.GameCodeDLL = LoadLibraryA(TempDLLName);
+		if(Result.GameCodeDLL)
+		{
+			Result.UpdateAndRender = 
+				(game_update_and_render *)GetProcAddress(Result.GameCodeDLL, "GameUpdateAndRender");
+			Result.GetSoundSamples = 
+				(game_get_sound_samples *)GetProcAddress(Result.GameCodeDLL, "GameGetSoundSamples");
+
+			Result.IsValid = (Result.UpdateAndRender && Result.GetSoundSamples);
+		}
+	}
 
 	if (!Result.IsValid)
 	{
@@ -930,6 +935,10 @@ int CALLBACK WinMain(
 	Win32BuildEXEPathFilename(&Win32State, "handmade_temp.dll",
 							  sizeof(TempGameCodeDLLFullPath), TempGameCodeDLLFullPath);
 
+	char GameCodeLockFullPath[WIN32_STATE_FILE_NAME_COUNT];
+	Win32BuildEXEPathFilename(&Win32State, "lock.tmp",
+							  sizeof(GameCodeLockFullPath), GameCodeLockFullPath);
+
 	// NOTE Set the Windows scheduler granularity to 1ms
 	// so that our sleep can be more granular.
 	UINT DesiredSchedulerMS = 1;
@@ -1087,7 +1096,8 @@ int CALLBACK WinMain(
 				real32 AudioLatencySeconds = 0;
 
 				win32_game_code Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, 
-														 TempGameCodeDLLFullPath);
+														 TempGameCodeDLLFullPath,
+														 GameCodeLockFullPath);
 
 				uint64_t LastCycleCount = __rdtsc();
 				GlobalRunning = 1;
@@ -1100,7 +1110,8 @@ int CALLBACK WinMain(
 					{
 						Win32UnloadGameCode(&Game);
 						Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, 
-												 TempGameCodeDLLFullPath);
+												 TempGameCodeDLLFullPath,
+												 GameCodeLockFullPath);
 					}
 
 					// TODO Zeroing Macros
@@ -1495,7 +1506,7 @@ int CALLBACK WinMain(
 					char FPSBuffer[256];
 					_snprintf_s(FPSBuffer, sizeof(FPSBuffer), 
 								"%.02fms/f, %.02ff/s, %.02fmc/f\n", MSPerFrame, FPS, MCPS);
-					//OutputDebugStringA(FPSBuffer);
+					OutputDebugStringA(FPSBuffer);
 #endif
 #if HANDMADE_INTERNAL
 					++DebugTimeMarkersIndex;

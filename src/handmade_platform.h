@@ -14,7 +14,40 @@
 extern "C" {
 #endif
 
+//
+//
+//
+
+#ifndef COMPILER_MSVC
+#define COMPILER_MSVC 0
+#endif
+
+#ifndef COMPILER_LLVM
+#define COMPILER_LLVM 0
+#endif
+
+#if !COMPILER_MSVC && !COMPILER_LLVM
+#if _MSC_VER
+#undef COMPILER_MSVC
+#define COMPILER_MSVC 1
+#else
+// TODO add more compiler switches
+#undef COMPILER_LLVM
+#define COMPILER_LLVM 1
+#endif
+#endif
+
+#if COMPILER_MSVC
+#include <intrin.h>
+#endif
+
+//
+//
+//
+
 #include <stdint.h>
+#include <stddef.h>
+
 
 typedef int32_t bool32;
 typedef char bool8;
@@ -23,6 +56,29 @@ typedef double real64;
 
 typedef size_t memory_index;
 
+#define local_persist static 
+#define global_var static
+#define internal static
+#define PI32 3.14159265359f
+// TODO should this always be 64-bit?
+#define Kilobytes(Value) ((Value) * 1024LL)
+#define Megabytes(Value) (Kilobytes(Value) * 1024LL)
+#define Gigabytes(Value) (Megabytes(Value) * 1024LL)
+#define Terabytes(Value) (Gigabytes(Value) * 1024LL)
+
+#define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
+
+#if HANDMADE_SLOW
+#define Assert(Expression) if(!(Expression)) {*(int*)0 = 0;}
+#else
+#define Assert(Expression)
+#endif
+
+inline uint32_t SafeTruncateUInt64 (uint64_t Value)
+{
+	Assert(Value <= 0xFFFFFFFF);
+	return (uint32_t)Value;
+}
 typedef struct thread_context
 {
 	int Placeholder;
@@ -116,6 +172,14 @@ typedef struct game_input
 
 	game_controller_input Controllers[5];
 } game_input;
+
+inline game_controller_input *GetController (game_input *Input, int unsigned ControllerIndex)
+{
+	Assert(ControllerIndex < ArrayCount(Input->Controllers));
+
+	game_controller_input *Result = &Input->Controllers[ControllerIndex];
+	return Result;
+}
 
 typedef struct game_memory
 {
