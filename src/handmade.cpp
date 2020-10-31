@@ -610,7 +610,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		}
 	}
 
-	 tile_map_difference Diff = Subtract(TileMap, &GameState->PlayerP, &GameState->CameraP);
+	tile_map_difference Diff = Subtract(TileMap, &GameState->PlayerP, &GameState->CameraP);
 
 	real32 PlayerR = 1.0f;
 	real32 PlayerG = 1.0f;

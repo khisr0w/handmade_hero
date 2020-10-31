@@ -20,7 +20,6 @@ struct win32_sound_output {
     uint32_t RunningSampleIndex;
     int BytesPerSample;
     DWORD SecondaryBufferSize;
-    real32 tSine;
 	DWORD SafetyBytes;
 };
 
