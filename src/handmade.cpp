@@ -299,9 +299,11 @@ internal void
 MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 {
 	tile_map *TileMap = GameState->World->TileMap;
-	if((ddP.X != 0.0f) && (ddP.Y != 0.0f))
+
+	real32 ddPLengthSq = LengthSq(ddP);
+	if(ddPLengthSq > 1.0f)
 	{
-		ddP *= 0.707106781187f; 
+		ddP *= (1.0f / SquareRoot(ddPLengthSq));
 	}
 
 	real32 PlayerSpeed = 50.0f; // m/s^2
@@ -364,6 +366,7 @@ MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 			r = v2{0, -1};
 		}
 
+		real32 Result = Inner(Entity->dP, r);
 		Entity->dP = Entity->dP - 1*Inner(Entity->dP, r)*r;
 	}
 	else
@@ -371,20 +374,20 @@ MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 		Entity->P = NewPlayerP;
 	}
 #else
-	uint32_t MinTileX = 0;
-	uint32_t MinTileY = 0;
-	uint32_t OnePastMaxTileX = 0;
-	uint32_t OnePastMaxTileY = 0;
-	uint32_t AbsTileZ = GameState->PlayerP.AbsTileZ;
-	tile_map_position BestPlayerP = GameState->PlayerP;
-	real32 BestDistanceSq = LengthSq(PlayerDelta);
+	uint32_t MinTileX = Minimum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
+	uint32_t MinTileY = Minimum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
+	uint32_t OnePastMaxTileX = Maximum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX) + 1;
+	uint32_t OnePastMaxTileY = Maximum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY) + 1;
+
+	uint32_t AbsTileZ = Entity->P.AbsTileZ;
+	real32 tMin = 1.0f;
 	for(uint32_t AbsTileY = MinTileY;
-			AbsTileY != OnePastMaxTileY;
-			++AbsTileY)
+		AbsTileY != OnePastMaxTileY;
+		++AbsTileY)
 	{
 		for(uint32_t AbsTileX = MinTileX;
-				AbsTileX != OnePastMaxTileX;
-				++AbsTileX)
+			AbsTileX != OnePastMaxTileX;
+			++AbsTileX)
 		{
 			tile_map_position TestTileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
 			uint32_t TileValue = GetTileValue(TileMap, TestTileP);
@@ -394,13 +397,11 @@ MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 				v2 MaxCorner = 0.5f*v2{TileMap->TileSideInMeters, TileMap->TileSideInMeters};
 
 				tile_map_difference RelNewPlayerP = Subtract(TileMap, &TestTileP, &NewPlayerP);
-				v2 TestP = ClosestPointInRectangle(MinCorner, MaxCorner, RelNewPlayerP);
-				TestDistanceSq = ;
-				if(BestDistanceSq > TestDistanceSq)
-				{
-					BestPlayerP = ;
-					BestDistanceSq = ;
-				}
+				v2 Rel = RelNewPlayerP.dXY;
+
+				// NOTE: when will the player hit the wall =>  t = (wx - p0x) / dx
+				ts = (WallX - RelNewPlayerP.x) / PlayerDelta.X;
+				TestWall(MinCorner.X, MinCorner.Y, MaxCorner.Y, RelNewPlayerP.x);
 			}
 		}
 	}
