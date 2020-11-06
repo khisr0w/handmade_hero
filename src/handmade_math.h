@@ -1,4 +1,3 @@
-
 union v2
 {
 	struct
