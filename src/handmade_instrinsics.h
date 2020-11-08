@@ -3,6 +3,12 @@
 // TODO Convert all to intrinsic
 #include "math.h"
 
+inline int32_t
+SignOf(int32_t Value)
+{
+	return (Value >= 0) ? 1 : -1;
+}
+
 inline real32
 SquareRoot(real32 Real32)
 {

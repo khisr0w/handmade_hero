@@ -14,8 +14,7 @@ struct tile_map_position
 	uint32_t AbsTileZ;
 
 	// NOTE This is Tile-relative X and Y
-	// TODO rename to Offset
-	v2 Offset;
+	v2 Offset_;
 };
 
 struct tile_chunk_position

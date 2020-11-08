@@ -284,14 +284,33 @@ InitializePlayer(game_state *GameState, uint32_t EntityIndex)
 	Entity->P.AbsTileX = 6;
 	Entity->P.AbsTileY = 6;
 	Entity->P.AbsTileZ = 0;
-	Entity->P.Offset.X = 0.5f;
-	Entity->P.Offset.Y = 0.5f;
+	Entity->P.Offset_.X = 0;
+	Entity->P.Offset_.Y = 0;
 	Entity->Height = 1.4f;
 	Entity->Width = 0.75f * Entity->Height;
 
 	if(!GetEntity(GameState, GameState->CameraFollowingEntityIndex))
 	{
 		GameState->CameraFollowingEntityIndex = EntityIndex;
+	}
+}
+
+internal void
+TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 PlayerDeltaY,
+		 real32 *tMin, real32 MinY, real32 MaxY)
+{
+	real32 tEpsilon = 0.0001f;
+	if(PlayerDeltaX != 0.0f)
+	{
+		real32 tResult = (WallX - RelX) / PlayerDeltaX;
+		real32 Y = RelY + tResult*PlayerDeltaY;
+		if((tResult >= 0.0f) && (*tMin > tResult))
+		{
+			if((Y >= MinY ) && (Y <= MaxY))
+			{
+				*tMin = Maximum(0.0f, tResult - tEpsilon);
+			}
+		}
 	}
 }
 
@@ -313,13 +332,10 @@ MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 	ddP += -8.0f * Entity->dP;
 
 	tile_map_position OldPlayerP = Entity->P;
-	tile_map_position NewPlayerP = OldPlayerP;
 	v2 PlayerDelta = (0.5f*ddP*Square(dt) + Entity->dP*dt);
-	NewPlayerP.Offset += PlayerDelta;
-
 	Entity->dP = ddP*dt + Entity->dP;
-	NewPlayerP = RecanonicalizePosition(TileMap, NewPlayerP);
-#if 1
+	tile_map_position NewPlayerP = Offset(TileMap, OldPlayerP, PlayerDelta);
+#if 0
 	tile_map_position PlayerLeft = NewPlayerP;
 	PlayerLeft.Offset.X -= 0.5f*Entity->Width;
 	PlayerLeft = RecanonicalizePosition(TileMap, PlayerLeft);
@@ -374,37 +390,70 @@ MovePlayer(game_state *GameState, entity *Entity, real32 dt, v2 ddP)
 		Entity->P = NewPlayerP;
 	}
 #else
+
+#if 0
 	uint32_t MinTileX = Minimum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX);
 	uint32_t MinTileY = Minimum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY);
 	uint32_t OnePastMaxTileX = Maximum(OldPlayerP.AbsTileX, NewPlayerP.AbsTileX) + 1;
 	uint32_t OnePastMaxTileY = Maximum(OldPlayerP.AbsTileY, NewPlayerP.AbsTileY) + 1;
+#else
+	uint32_t StartTileX = OldPlayerP.AbsTileX;
+	uint32_t StartTileY = OldPlayerP.AbsTileY;
+	uint32_t EndTileX = NewPlayerP.AbsTileX;
+	uint32_t EndTileY = NewPlayerP.AbsTileY;
+
+	int32_t DeltaX = SignOf(EndTileX - StartTileX);
+	int32_t DeltaY = SignOf(EndTileY - StartTileY);
+#endif
 
 	uint32_t AbsTileZ = Entity->P.AbsTileZ;
 	real32 tMin = 1.0f;
-	for(uint32_t AbsTileY = MinTileY;
-		AbsTileY != OnePastMaxTileY;
-		++AbsTileY)
+
+	uint32_t AbsTileY = StartTileY;
+	for(;;)
 	{
-		for(uint32_t AbsTileX = MinTileX;
-			AbsTileX != OnePastMaxTileX;
-			++AbsTileX)
+		uint32_t AbsTileX = StartTileX;
+		for(;;)
 		{
 			tile_map_position TestTileP = CenteredTilePoint(AbsTileX, AbsTileY, AbsTileZ);
 			uint32_t TileValue = GetTileValue(TileMap, TestTileP);
-			if(IsTileValueEmpty(TileValue))
+			if(!IsTileValueEmpty(TileValue))
 			{
 				v2 MinCorner = -0.5f*v2{TileMap->TileSideInMeters, TileMap->TileSideInMeters};
 				v2 MaxCorner = 0.5f*v2{TileMap->TileSideInMeters, TileMap->TileSideInMeters};
 
-				tile_map_difference RelNewPlayerP = Subtract(TileMap, &TestTileP, &NewPlayerP);
-				v2 Rel = RelNewPlayerP.dXY;
+				tile_map_difference RelOldPlayerP = Subtract(TileMap, &OldPlayerP, &TestTileP);
+				v2 Rel = RelOldPlayerP.dXY;
 
 				// NOTE: when will the player hit the wall =>  t = (wx - p0x) / dx
-				ts = (WallX - RelNewPlayerP.x) / PlayerDelta.X;
-				TestWall(MinCorner.X, MinCorner.Y, MaxCorner.Y, RelNewPlayerP.x);
+				// NOTE: Test all four walls and take the minimum t of it.
+				TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y);
+				TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin, MinCorner.Y, MaxCorner.Y);
+				TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X);
+				TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin, MinCorner.X, MaxCorner.X);
+			}
+
+			if(AbsTileX == EndTileX)
+			{
+				break;
+			}
+			else
+			{
+				AbsTileX += DeltaX;
 			}
 		}
+
+		if(AbsTileY == EndTileY)
+		{
+			break;
+		}
+		else
+		{
+			AbsTileY += DeltaY;
+		}
 	}
+
+	Entity->P = Offset(TileMap, OldPlayerP, tMin*PlayerDelta);
 #endif
 
 	//
@@ -529,8 +578,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		uint32_t RandomNumberIndex = 0;
 		uint32_t TilesPerWidth = 17;
 		uint32_t TilesPerHeight = 9;
+#if 0
+		// TODO waiting for full sparseness;
+		uint32_t ScreenX = INT32_MAX / 2;
+		uint32_t ScreenY = INT32_MAX / 2;
+#else
 		uint32_t ScreenX = 0;
 		uint32_t ScreenY = 0;
+#endif
 		uint32_t AbsTileZ = 0;
 
 		bool32 DoorLeft = false;
@@ -782,10 +837,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				}
 
 				v2 TileSide = {0.5f*TileSideInPixels, 0.5f*TileSideInPixels};
-				v2 Cen = {ScreenCenterX + ((real32)RelColumn)*TileSideInPixels - GameState->CameraP.Offset.X*MetersToPixels,
-						  ScreenCenterY - ((real32)RelRow)*TileSideInPixels + GameState->CameraP.Offset.Y*MetersToPixels};
-				v2 Min = Cen - TileSide;
-				v2 Max = Cen + TileSide;
+				v2 Cen = {ScreenCenterX + ((real32)RelColumn)*TileSideInPixels - GameState->CameraP.Offset_.X*MetersToPixels,
+						  ScreenCenterY - ((real32)RelRow)*TileSideInPixels + GameState->CameraP.Offset_.Y*MetersToPixels};
+				v2 Min = Cen - 0.9f*TileSide;
+				v2 Max = Cen + 0.9f*TileSide;
 				DrawRectangle(Buffer, Min, Max, Gray, Gray, Gray);
 			}
 		}
@@ -826,24 +881,3 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 	GameOutputSound(GameState, SoundBuffer, 400);
 }
-
-/*
-internal void RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int YOffset) {
-
-	// TODO let's what the optimizer does
-
-	uint8_t *Row = (uint8_t *)Buffer->Memory;
-	for(int Y = 0; Y < Buffer->Height; ++Y) {
-
-		uint32_t *Pixel = (uint32_t *)Row;
-		for(int X = 0; X < Buffer->Width; ++X) {
-
-			uint8_t Blue = (uint8_t)(X + XOffset);
-			uint8_t Green = (uint8_t)(Y + YOffset);
-			// Coloring scheme is BGR because fuck windows
-			*Pixel++ = ((Green << 8) | Blue);
-		}
-		Row += Buffer->Pitch;
-	}
-}
-*/

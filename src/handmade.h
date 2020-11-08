@@ -3,8 +3,8 @@
 
 #include "handmade_platform.h"
 
-#define Minimum(A, B) (((A) < (B)) ? (A) : (B))
-#define Maximum(A, B) (((A) > (B)) ? (A) : (B))
+#define Minimum(A, B) (((A) < (B)) ? A : B)
+#define Maximum(A, B) (((A) > (B)) ? A : B)
 
 /* 
    TODO Services that the platform layer provides to the game
