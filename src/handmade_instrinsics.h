@@ -50,10 +50,16 @@ RoundReal32ToUInt32(real32 Real32)
 	return (uint32_t)roundf(Real32);
 }
 
-inline uint32_t
-FloorReal32ToUInt32(real32 Real32)
+inline int32_t
+FloorReal32ToInt32(real32 Real32)
 {
-	return (uint32_t)floorf(Real32);
+	return (int32_t)floorf(Real32);
+}
+
+inline int32_t
+CeilReal32ToInt32(real32 Real32)
+{
+	return (int32_t)ceilf(Real32);
 }
 
 inline uint32_t
