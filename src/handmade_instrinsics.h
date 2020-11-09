@@ -27,15 +27,25 @@ AbsoluteValue(real32 Real32)
 inline uint32_t
 RotateLeft(uint32_t Value, int32_t Amount)
 {
+#if COMPILER_MSVC
 	uint32_t Result = _rotl(Value, Amount);
-
+#else
+	Amount &= 31;
+	uint32_t Result = ((Value << Amount) | (Value >> (32 - Amount)));
+#endif
 	return Result;
 }
 
 inline uint32_t
 RotateRight(uint32_t Value, int32_t Amount)
 {
-	return _rotr(Value, Amount);
+#if COMPILER_MSVC
+	uint32_t Result = _rotr(Value, Amount);
+#else
+	Amount &= 31;
+	uint32_t Result = ((Value >> Amount) | (Value << (32 - Amount)));
+#endif
+	return Result;
 }
 
 inline int32_t
