@@ -89,10 +89,18 @@ struct low_entity
 {
 };
 
+enum entity_type
+{
+	EntityType_Null,
+	EntityType_Hero,
+	EntityType_Wall,
+};
+
 struct dormant_entity
 {
 	tile_map_position P;
 	real32 Height, Width;
+	entity_type Type;
 
 	bool32 Collides;
 	int32_t dAbsTileZ;
