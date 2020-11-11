@@ -74,6 +74,13 @@ struct hero_bitmaps
 	loaded_bitmap Torso;
 };
 
+enum entity_type
+{
+	EntityType_Null,
+	EntityType_Hero,
+	EntityType_Wall,
+};
+
 struct high_entity
 {
 	v2 P;
@@ -83,20 +90,11 @@ struct high_entity
 
 	real32 dZ;
 	real32 Z;
+
+	uint32_t LowEntityIndex;
 };
 
 struct low_entity
-{
-};
-
-enum entity_type
-{
-	EntityType_Null,
-	EntityType_Hero,
-	EntityType_Wall,
-};
-
-struct dormant_entity
 {
 	tile_map_position P;
 	real32 Height, Width;
@@ -104,21 +102,14 @@ struct dormant_entity
 
 	bool32 Collides;
 	int32_t dAbsTileZ;
-};
 
-enum entity_residence
-{
-	EntityResidence_Nonexistent,
-	EntityResidence_Dormant,
-	EntityResidence_Low,
-	EntityResidence_High,
+	uint32_t HighEntityIndex;
 };
 
 struct entity
 {
-	uint32_t Residence;
+	uint32_t LowIndex;
 	low_entity *Low;
-	dormant_entity *Dormant;
 	high_entity *High;
 };
 
@@ -133,11 +124,11 @@ struct game_state
 
 	uint32_t PlayerIndexForController[ArrayCount(((game_input *)0)->Controllers)];
 
-	uint32_t EntityCount;
-	entity_residence EntityResidence[256];
-	high_entity HighEntities[256];
-	low_entity LowEntities[256];
-	dormant_entity DormantEntities[256];
+	uint32_t LowEntityCount;
+	low_entity LowEntities[4096];
+
+	uint32_t HighEntityCount;
+	high_entity HighEntities_[256];
 
 	loaded_bitmap BackDrop;
 	loaded_bitmap Shadow;

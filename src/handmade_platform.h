@@ -60,7 +60,8 @@ typedef size_t memory_index;
 #define global_var static
 #define internal static
 #define PI32 3.14159265359f
-// TODO should this always be 64-bit?
+
+#define InvalidCodePath Assert(!"InvalidCodePath")
 #define Kilobytes(Value) ((Value) * 1024LL)
 #define Megabytes(Value) (Kilobytes(Value) * 1024LL)
 #define Gigabytes(Value) (Megabytes(Value) * 1024LL)
