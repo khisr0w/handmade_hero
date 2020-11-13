@@ -1,4 +1,3 @@
-cls
 @echo off
 
 set CommonCompilerFlags= -MTd -Gm- -nologo -fp:fast -GR- -EHa- -Od -Oi -FC -Z7 -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DHANDMADE_WIN32=1 -DHANDMADE_SLOW=1 -DHANDMADE_INTERNAL=1 
