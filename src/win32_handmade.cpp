@@ -95,8 +95,8 @@ Win32GetEXEFilename(win32_state *State)
 	DWORD SizeOfFilename = GetModuleFileNameA(0, State->EXEFileName, sizeof(State->EXEFileName));
 	State->OnePastLastEXEFilenameSlash = State->EXEFileName;
 	for (char *Scan = State->EXEFileName;
-			*Scan;
-			++Scan)
+		 *Scan;
+		 ++Scan)
 	{
 		if(*Scan == '\\')
 		{
@@ -1104,7 +1104,7 @@ int CALLBACK WinMain(
 			LPVOID BaseAddress = 0;
 #endif
 			game_memory GameMemory = {};
-			GameMemory.PermanentStorageSize = Megabytes(64);
+			GameMemory.PermanentStorageSize = Megabytes(256);
 			GameMemory.TransientStorageSize = Gigabytes(1);
 			GameMemory.DEBUGPlatformFreeFileMemory = DEBUGPlatformFreeFileMemory;
 			GameMemory.DEBUGPlatformReadEntireFile = DEBUGPlatformReadEntireFile;

@@ -1,5 +1,5 @@
 #include "handmade.h"
-#include "handmade_tile.cpp"
+#include "handmade_world.cpp"
 #include "handmade_random.h"
 
 internal void GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz)
@@ -272,8 +272,7 @@ MakeEntityHighFrequency(game_state *GameState, uint32_t LowIndex)
 			EntityHigh = GameState->HighEntities_ + HighIndex;
 
 			// NOTE map the entity to camera space
-			tile_map_difference Diff = Subtract(GameState->World->TileMap,
-												&EntityLow->P, &GameState->CameraP);
+			world_difference Diff = Subtract(GameState->World, &EntityLow->P, &GameState->CameraP);
 			EntityHigh->P = Diff.dXY;
 			EntityHigh->dP = v2{0, 0};
 			EntityHigh->AbsTileZ = EntityLow->P.AbsTileZ;
@@ -328,16 +327,15 @@ MakeEntityLowFrequency(game_state *GameState, uint32_t LowIndex)
 }
 
 inline void
-OffsetAndCheckFrequencyByArea(game_state *GameState, v2 Offset, rectangle2 CameraBounds)
+OffsetAndCheckFrequencyByArea(game_state *GameState, v2 Offset, rectangle2 HighFrequencyBounds)
 {
 	for(uint32_t EntityIndex = 1;
-		EntityIndex < GameState->HighEntityCount;
-		)
+		EntityIndex < GameState->HighEntityCount;)
 	{
 		high_entity *High = GameState->HighEntities_ + EntityIndex;
 
 		High->P += Offset;
-		if(IsInRectangle(CameraBounds, High->P))
+		if(IsInRectangle(HighFrequencyBounds, High->P))
 		{
 			++EntityIndex;
 		}
@@ -403,7 +401,7 @@ AddWall(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t Ab
 	EntityLow->P.AbsTileX = AbsTileX;
 	EntityLow->P.AbsTileY = AbsTileY;
 	EntityLow->P.AbsTileZ = AbsTileZ;
-	EntityLow->Height = GameState->World->TileMap->TileSideInMeters;
+	EntityLow->Height = GameState->World->TileSideInMeters;
 	EntityLow->Width = EntityLow->Height;
 	EntityLow->Collides = true;
 
@@ -436,7 +434,7 @@ TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 Pla
 internal void
 MovePlayer(game_state *GameState, entity Entity, real32 dt, v2 ddP)
 {
-	tile_map *TileMap = GameState->World->TileMap;
+	world *World = GameState->World;
 
 	real32 ddPLengthSq = LengthSq(ddP);
 	if(ddPLengthSq > 1.0f)
@@ -580,22 +578,21 @@ MovePlayer(game_state *GameState, entity Entity, real32 dt, v2 ddP)
 	}
 	
 	// TODO always write back a valid tile position
-	Entity.Low->P = MapIntoTileSpace(GameState->World->TileMap, GameState->CameraP, Entity.High->P);
+	Entity.Low->P = MapIntoTileSpace(GameState->World, GameState->CameraP, Entity.High->P);
 }
 
 internal void
-SetCamera(game_state *GameState, tile_map_position NewCameraP)
+SetCamera(game_state *GameState, world_position NewCameraP)
 {
-	tile_map *TileMap = GameState->World->TileMap;
+	world *World = GameState->World;
 
-	tile_map_difference dCameraP = Subtract(TileMap, &NewCameraP, &GameState->CameraP);
+	world_difference dCameraP = Subtract(World, &NewCameraP, &GameState->CameraP);
 	GameState->CameraP = NewCameraP;
 
 	uint32_t TileSpanX = 17*3;
 	uint32_t TileSpanY = 9*3;;
-	rectangle2 CameraBounds = RectCenterDim(v2{0, 0}, TileMap->TileSideInMeters*v2{(real32)TileSpanX, 
-																				   (real32)TileSpanY});
-
+	rectangle2 CameraBounds = RectCenterDim(v2{0, 0}, World->TileSideInMeters*v2{(real32)TileSpanX, 
+																				 (real32)TileSpanY});
 	v2 EntityOffsetForFrame = -dCameraP.dXY;
 	OffsetAndCheckFrequencyByArea(GameState, EntityOffsetForFrame, CameraBounds);
 
@@ -613,6 +610,7 @@ SetCamera(game_state *GameState, tile_map_position NewCameraP)
 
 		if(Low->HighEntityIndex == 0)
 		{
+			// TODO This needs to be accelerated
 			if((Low->P.AbsTileZ == NewCameraP.AbsTileZ) &&
 			   (Low->P.AbsTileX >= MinTileX) &&
 			   (Low->P.AbsTileX <= MaxTileX) &&
@@ -680,10 +678,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 		GameState->World = PushStruct(&GameState->WorldArena, world);
 		world *World = GameState->World;
-		World->TileMap = PushStruct(&GameState->WorldArena, tile_map);
 
-		tile_map *TileMap = World->TileMap;
-		InitializeTileMap(TileMap, 1.4f);
+		InitializeWorld(World, 1.4f);
 
 		uint32_t RandomNumberIndex = 0;
 		uint32_t TilesPerWidth = 17;
@@ -779,7 +775,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 						}
 					}
 
-					SetTileValue(&GameState->WorldArena, World->TileMap, AbsTileX, AbsTileY, AbsTileZ, TileValue);
 					if(TileValue == 2)
 					{
 						AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
@@ -824,8 +819,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				ScreenY += 1;
 			}
 		}
-
-		tile_map_position NewCameraP = {};
+#if 0
+		while(GameState->LowEntityCount < ArrayCount(GameState->LowEntities) - 16)
+		{
+			uint32_t Coordinate = 1024 + GameState->LowEntityCount;
+			AddWall(GameState, Coordinate, Coordinate, Coordinate);
+		}
+#endif
+		world_position NewCameraP = {};
 		NewCameraP.AbsTileX = ScreenBaseX*TilesPerWidth + 17/2;
 		NewCameraP.AbsTileY = ScreenBaseY*TilesPerHeight + 9/2;
 		NewCameraP.AbsTileZ = ScreenBaseZ;
@@ -835,10 +836,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	}
 
 	world *World = GameState->World;
-	tile_map *TileMap = World->TileMap;
 
 	int32_t TileSideInPixels = 60;
-	real32 MetersToPixels = (real32)TileSideInPixels / (real32)TileMap->TileSideInMeters;
+	real32 MetersToPixels = (real32)TileSideInPixels / (real32)World->TileSideInMeters;
 
 	real32 LowerLeftX = -(real32)TileSideInPixels / 2;
 	real32 LowerLeftY = (real32)Buffer->Height;
@@ -900,44 +900,45 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	entity CameraFollowingEntity = GetHighEntity(GameState, GameState->CameraFollowingEntityIndex);
 	if(CameraFollowingEntity.High)
 	{
-		tile_map_position NewCameraP = GameState->CameraP;
+		world_position NewCameraP = GameState->CameraP;
 		GameState->CameraP.AbsTileZ = CameraFollowingEntity.Low->P.AbsTileZ;
-#if 1
-		if(CameraFollowingEntity.High->P.X > (9.0f*TileMap->TileSideInMeters))
+#if 0
+		if(CameraFollowingEntity.High->P.X > (9.0f*World->TileSideInMeters))
 		{
 			NewCameraP.AbsTileX += 17;
 		}
-		if(CameraFollowingEntity.High->P.X < -(9.0f*TileMap->TileSideInMeters))
+		if(CameraFollowingEntity.High->P.X < -(9.0f*World->TileSideInMeters))
 		{
 			NewCameraP.AbsTileX -= 17;
 		}
-		if(CameraFollowingEntity.High->P.Y > (5.0f*TileMap->TileSideInMeters))
+		if(CameraFollowingEntity.High->P.Y > (5.0f*World->TileSideInMeters))
 		{
 			NewCameraP.AbsTileY += 9;
 		}
-		if(CameraFollowingEntity.High->P.Y < -(5.0f*TileMap->TileSideInMeters))
+		if(CameraFollowingEntity.High->P.Y < -(5.0f*World->TileSideInMeters))
 		{
 			NewCameraP.AbsTileY -= 9;
 		}
 #else
-		if(CameraFollowingEntity.High->P.X > (1.0f*TileMap->TileSideInMeters))
-		{
-			NewCameraP.AbsTileX += 1;
-		}
-		if(CameraFollowingEntity.High->P.X < -(1.0f*TileMap->TileSideInMeters))
-		{
-			NewCameraP.AbsTileX -= 1;
-		}
-		if(CameraFollowingEntity.High->P.Y > (1.0f*TileMap->TileSideInMeters))
-		{
-			NewCameraP.AbsTileY += 1;
-		}
-		if(CameraFollowingEntity.High->P.Y < -(1.0f*TileMap->TileSideInMeters))
-		{
-			NewCameraP.AbsTileY -= 1;
-		}
-#endif
+		// if(CameraFollowingEntity.High->P.X > (1.0f*World->TileSideInMeters))
+		// {
+		// 	NewCameraP.AbsTileX += 1;
+		// }
+		// if(CameraFollowingEntity.High->P.X < -(1.0f*World->TileSideInMeters))
+		// {
+		// 	NewCameraP.AbsTileX -= 1;
+		// }
+		// if(CameraFollowingEntity.High->P.Y > (1.0f*World->TileSideInMeters))
+		// {
+		// 	NewCameraP.AbsTileY += 1;
+		// }
+		// if(CameraFollowingEntity.High->P.Y < -(1.0f*World->TileSideInMeters))
+		// {
+		// 	NewCameraP.AbsTileY -= 1;
+		// }
+		NewCameraP = CameraFollowingEntity.Low->P;
 		SetCamera(GameState, NewCameraP);
+#endif
 	}
 
 	// TODO Map new entities in and old entities out!!!
@@ -958,7 +959,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		{
 			uint32_t Column = GameState->CameraP.AbsTileX + RelColumn;
 			uint32_t Row = GameState->CameraP.AbsTileY + RelRow;
-			uint32_t TileID = GetTileValue(TileMap, Column, Row, GameState->CameraP.AbsTileZ);
+			uint32_t TileID = GetTileValue(World, Column, Row, GameState->CameraP.AbsTileZ);
 			if(TileID > 1)
 			{
 				real32 Gray = 0.5f;
@@ -1033,9 +1034,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		else
 		{
 			DrawRectangle(Buffer, 
-					PlayerLeftTop,
-					PlayerLeftTop + MetersToPixels*EntityWidthHeight,
-					PlayerR, PlayerG, PlayerB);
+						  PlayerLeftTop,
+						  PlayerLeftTop + MetersToPixels*EntityWidthHeight,
+						  PlayerR, PlayerG, PlayerB);
 		}
 #if 0
 #endif

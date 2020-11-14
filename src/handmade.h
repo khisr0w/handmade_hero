@@ -50,12 +50,7 @@ PushSize_(memory_arena *Arena, memory_index Size)
 
 #include "handmade_math.h"
 #include "handmade_instrinsics.h"
-#include "handmade_tile.h"
-
-struct world
-{
-	tile_map *TileMap;
-};
+#include "handmade_world.h"
 
 struct loaded_bitmap
 {
@@ -96,7 +91,7 @@ struct high_entity
 
 struct low_entity
 {
-	tile_map_position P;
+	world_position P;
 	real32 Height, Width;
 	entity_type Type;
 
@@ -120,12 +115,12 @@ struct game_state
 
 	// TODO Split-screen?
 	uint32_t CameraFollowingEntityIndex;
-	tile_map_position CameraP;
+	world_position CameraP;
 
 	uint32_t PlayerIndexForController[ArrayCount(((game_input *)0)->Controllers)];
 
 	uint32_t LowEntityCount;
-	low_entity LowEntities[4096];
+	low_entity LowEntities[100000];
 
 	uint32_t HighEntityCount;
 	high_entity HighEntities_[256];
