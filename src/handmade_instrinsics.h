@@ -2,6 +2,7 @@
 
 // TODO Convert all to intrinsic
 #include "math.h"
+#define Pi32 3.141592653589
 
 inline int32_t
 SignOf(int32_t Value)
@@ -78,12 +79,12 @@ TruncateReal32ToUInt32(real32 Real32)
 	return (uint32_t)(Real32);
 }
 
-inline real32 sines(real32 Angle)
+inline real32 Sin(real32 Angle)
 {
 	return sinf(Angle);
 }
 
-inline real32 Cosine (real32 Angle)
+inline real32 Cos(real32 Angle)
 {
 	return cosf(Angle);
 }
