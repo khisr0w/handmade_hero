@@ -15,7 +15,7 @@ NullPosition()
 }
 
 inline bool32
-IsValid(world_position *P)
+IsValid(world_position P)
 {
 	bool32 Result = (P.ChunkX != TILE_CHUNK_UNINITIALIZED);
 	
@@ -51,7 +51,7 @@ AreInSameChunk(world *World, world_position *A, world_position *B)
 
 inline world_chunk *
 GetWorldChunk(world *World, int32_t ChunkX, int32_t ChunkY, int32_t ChunkZ,
-			 memory_arena *Arena = 0)
+			  memory_arena *Arena = 0)
 {
 	Assert(ChunkX > -TILE_CHUNK_SAFE_MARGIN);
 	Assert(ChunkY > -TILE_CHUNK_SAFE_MARGIN);
@@ -202,7 +202,7 @@ ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32_t LowEntityInd
 	Assert(!OldP || IsValid(*OldP));
 	Assert(!NewP || IsValid(*NewP));
 
-	if(OldP && AreInSameChunk(World, OldP, NewP))
+	if(OldP && NewP && AreInSameChunk(World, OldP, NewP))
 	{
 		// NOTE Do nothing
 	}
