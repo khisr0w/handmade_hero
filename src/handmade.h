@@ -51,6 +51,7 @@ PushSize_(memory_arena *Arena, memory_index Size)
 #include "handmade_instrinsics.h"
 #include "handmade_math.h"
 #include "handmade_world.h"
+#include "handmade_sim_region.h"
 
 struct loaded_bitmap
 {
@@ -68,63 +69,11 @@ struct hero_bitmaps
 	loaded_bitmap Torso;
 };
 
-enum entity_type
-{
-	EntityType_Null,
-	EntityType_Hero,
-	EntityType_Wall,
-	EntityType_Monstar,
-	EntityType_Familiar,
-	EntityType_Sword,
-};
-
-struct high_entity
-{
-	v2 P;
-	v2 dP;
-	uint32_t ChunkZ;
-	uint32_t FacingDirection;
-
-	real32 tBob;
-
-	real32 dZ;
-	real32 Z;
-
-	uint32_t LowEntityIndex;
-};
-
-#define HIT_POINT_SUB_COUNT 4
-struct hit_point
-{
-	// TODO Bake this down into one variable
-	uint8_t Flags;
-	uint8_t FilledAmount;
-};
-
+struct sim_entity;
 struct low_entity
 {
 	world_position P;
-	real32 Height, Width;
-	entity_type Type;
-
-	bool32 Collides;
-	int32_t dAbsTileZ;
-
-	uint32_t HighEntityIndex;
-
-	// TODO Should hit points be entities?
-	uint32_t HitPointMax;
-	hit_point HitPoint[16];
-
-	uint32_t SwordLowIndex;
-	real32 DistanceRemaining;
-};
-
-struct entity
-{
-	uint32_t LowIndex;
-	low_entity *Low;
-	high_entity *High;
+	sim_entity Sim;
 };
 
 struct entity_visible_piece
@@ -154,9 +103,6 @@ struct game_state
 	uint32_t LowEntityCount;
 	low_entity LowEntities[100000];
 
-	uint32_t HighEntityCount;
-	high_entity HighEntities_[256];
-
 	loaded_bitmap BackDrop;
 	loaded_bitmap Shadow;
 	hero_bitmaps HeroBitmaps[4];
@@ -171,5 +117,18 @@ struct entity_visible_piece_group
 	uint32_t PieceCount;
 	entity_visible_piece Pieces[8];
 };
+
+inline low_entity *
+GetLowEntity(game_state *GameState, uint32_t Index)
+{
+	low_entity *Result = 0;
+
+	if((Index > 0) && (Index < GameState->LowEntityCount))
+	{
+		Result = GameState->LowEntities + Index;
+	}
+
+	return Result;
+}
 #define HANDMADE_H
 #endif

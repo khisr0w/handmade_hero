@@ -1,4 +1,3 @@
-
 struct world_difference
 {
 	v2 dXY;
