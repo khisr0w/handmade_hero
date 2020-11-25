@@ -29,10 +29,10 @@ struct memory_arena
 };
 
 internal void
-InitializeArena(memory_arena *Arena, memory_index Size, uint8_t *Base)
+InitializeArena(memory_arena *Arena, memory_index Size, void *Base)
 {
 	Arena->Size = Size;
-	Arena->Base = Base;
+	Arena->Base = (uint8_t *)Base;
 	Arena->Used = 0;
 }
 
@@ -46,6 +46,18 @@ PushSize_(memory_arena *Arena, memory_index Size)
 	Arena->Used += Size;
 
 	return Result;
+}
+
+#define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance));
+inline void
+ZeroSize(memory_index Size, void *Ptr)
+{
+	// TODO Check this guy for performance!
+	uint8_t *Byte = (uint8_t *)Ptr;
+	while(Size--)
+	{
+		*Byte++ = 0;
+	}
 }
 
 #include "handmade_instrinsics.h"
@@ -87,6 +99,15 @@ struct entity_visible_piece
 	v2 Dim;
 };
 
+struct controlled_hero
+{
+	uint32_t EntityIndex;
+	// NOTE These are the controller requests for simulation
+	v2 ddP;
+	v2 dSword;
+	real32 dZ;
+};
+
 struct game_state
 {
 	memory_arena WorldArena;
@@ -98,7 +119,7 @@ struct game_state
 	uint32_t CameraFollowingEntityIndex;
 	world_position CameraP;
 
-	uint32_t PlayerIndexForController[ArrayCount(((game_input *)0)->Controllers)];
+	controlled_hero ControlledHeroes[ArrayCount(((game_input *)0)->Controllers)];
 
 	uint32_t LowEntityCount;
 	low_entity LowEntities[100000];

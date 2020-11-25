@@ -1,3 +1,5 @@
+#include "handmade_sim_region.h"
+
 internal sim_entity_hash *
 GetHashFromStorageIndex(sim_region *SimRegion, uint32_t StorageIndex)
 {
@@ -10,8 +12,10 @@ GetHashFromStorageIndex(sim_region *SimRegion, uint32_t StorageIndex)
 			Offset < ArrayCount(SimRegion->Hash);
 			++Offset)
 		{
-			sim_entity_hash *Entry = SimRegion->Hash +
-									 ((HashValue + Offset) & (ArrayCount(SimRegion->Hash) - 1));
+			uint32_t HashMask = (ArrayCount(SimRegion->Hash) - 1);
+			uint32_t HashIndex = ((HashValue + Offset) & HashMask);
+			sim_entity_hash *Entry = SimRegion->Hash + HashIndex;
+									 
 			if(Entry->Index == 0 || (Entry->Index == StorageIndex))
 			{
 				Result = Entry;
@@ -82,7 +86,7 @@ AddEntity(game_state *GameState, sim_region *SimRegion, uint32_t StorageIndex, l
 		{
 			// TODO This should really be decompression step not a full on copy
 			*Entity = Source->Sim;
-			LoadEntityReference(GameState, SimRegion, Entity->Sword);
+			LoadEntityReference(GameState, SimRegion, &Entity->Sword);
 		}
 
 		Entity->StorageIndex = StorageIndex;
@@ -120,6 +124,8 @@ AddEntity(game_state *GameState, sim_region *SimRegion, uint32_t LowEntityIndex,
             Dest->P = GetSimSpaceP(SimRegion, Source);
         }
     }
+
+	return Dest;
 }
 
 internal sim_region *
@@ -128,6 +134,7 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
     // TODO If entities were stored in the world, we wouldn't need the game state here!
     
     sim_region *SimRegion = PushStruct(SimArena, sim_region);
+	ZeroStruct(SimRegion->Hash);
 
     SimRegion->World = World;
     SimRegion->Origin = Origin;
@@ -174,6 +181,8 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
             }
         }
     }
+
+	return SimRegion;
 }
 
 internal void
@@ -190,7 +199,7 @@ EndSim(sim_region *Region, game_state *GameState)
         low_entity *Stored = GameState->LowEntities + Entity->StorageIndex;
 
 		Stored->Sim = *Entity;
-		StoreEntityReference(Stored->Sim.Sword);
+		StoreEntityReference(&Stored->Sim.Sword);
 
         // TODO Save state back to the stored entity, once high entities
         // do state decompression, etc.

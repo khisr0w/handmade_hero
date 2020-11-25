@@ -56,7 +56,7 @@ struct sim_entity
 	uint32_t HitPointMax;
 	hit_point HitPoint[16];
 
-	entity_reference *Sword;
+	entity_reference Sword;
 	real32 DistanceRemaining;
 };
 
