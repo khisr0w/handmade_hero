@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:12:49 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 struct world_difference
 {
 	v2 dXY;

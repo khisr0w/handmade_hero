@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:11:58 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 #if !defined(HANDMADE_PLATFORM_H)
 
 /*

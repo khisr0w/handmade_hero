@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:12:19 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 #if !defined(HANDMADE_SIM_REGION_H)
 #define HIT_POINT_SUB_COUNT 4
 
@@ -32,26 +40,36 @@ union entity_reference
 	uint32_t Index;
 };
 
+enum sim_entity_flags
+{
+	EntityFlag_Collides = (1 << 1),
+	EntityFlag_Nonspatial = (1 << 2),
+
+	EntityFlag_Simming = (1 << 30),
+};
+
 struct sim_entity
 {
 	uint32_t StorageIndex;
 
+	entity_type Type;
+	uint32_t Flags;
+
 	v2 P;
-	uint32_t ChunkZ;
+	v2 dP;
 
 	real32 Z;
 	real32 dZ;
 
-	v2 dP;
+	uint32_t ChunkZ;
+
 	real32 Height, Width;
 
 	uint32_t FacingDirection;
 	real32 tBob;
 
-	bool32 Collides;
 	int32_t dAbsTileZ;
 
-	entity_type Type;
 	// TODO Should hit points be entities?
 	uint32_t HitPointMax;
 	hit_point HitPoint[16];

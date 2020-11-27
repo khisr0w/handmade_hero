@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:10:24 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 // TODO think about the safe margin
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX/64)
 #define TILE_CHUNK_UNINITIALIZED INT32_MAX
@@ -282,16 +290,30 @@ ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32_t LowEntityInd
 internal void
 ChangeEntityLocation(memory_arena *Arena, world *World,
 					 uint32_t LowEntityIndex, low_entity *EntityLow,
-					 world_position *OldP, world_position *NewP)
+					 world_position NewPInit)
 {
+	world_position *OldP = 0;
+	world_position *NewP = 0;
+
+	if(!IsSet(&EntityLow->Sim, EntityFlag_Nonspatial) && IsValid(EntityLow->P))
+	{
+		OldP = &EntityLow->P;
+	}
+
+	if(IsValid(NewPInit))
+	{
+		NewP = &NewPInit;
+	}
 	ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
 
 	if(NewP)
 	{
 		EntityLow->P = *NewP;
+		ClearFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
 	}
 	else
 	{
 		EntityLow->P = NullPosition();
+		AddFlag(&EntityLow->Sim, EntityFlag_Nonspatial);
 	}
 }

@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:58:34 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 // This is the header file for the platform independent layer
 #if !defined(HANDMADE_H)
 
@@ -16,10 +24,6 @@
 */
 
 // FOUR THINGS - Timing, Controller/Keyboard, Bitmap buffer to use, Sound Buffer to use
-
-//
-//
-//
 
 struct memory_arena
 {

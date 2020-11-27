@@ -1,3 +1,11 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/27/2020 5:09:12 AM                                         |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 inline move_spec
 DefaultMoveSpec()
 {
@@ -61,19 +69,26 @@ UpdateMonstar(sim_region *SimRegion, sim_entity *Entity, real32 dt)
 inline void 
 UpdateSword(sim_region *SimRegion, sim_entity *Entity, real32 dt)
 {
-	move_spec MoveSpec = DefaultMoveSpec();
-	MoveSpec.Speed = 0.0f;
-	MoveSpec.UnitMaxAccelVector = false;
-	MoveSpec.Drag = 0.0f;
-
-	v2 OldP = Entity->P;
-	MoveEntity(SimRegion, Entity, dt, &MoveSpec, V2(0, 0));
-	real32 DistanceTraveled = Length(Entity->P - OldP);
-
-	Entity->DistanceRemaining -= DistanceTraveled;
-	if(Entity->DistanceRemaining < 0.0f)
+	if(IsSet(Entity, EntityFlag_Nonspatial))
 	{
-		Assert(!"NEED TO MAKE THE ENTITIES NOT BE THERE!");
+
+	}
+	else
+	{
+		move_spec MoveSpec = DefaultMoveSpec();
+		MoveSpec.Speed = 0.0f;
+		MoveSpec.UnitMaxAccelVector = false;
+		MoveSpec.Drag = 0.0f;
+
+		v2 OldP = Entity->P;
+		MoveEntity(SimRegion, Entity, dt, &MoveSpec, V2(0, 0));
+		real32 DistanceTraveled = Length(Entity->P - OldP);
+
+		Entity->DistanceRemaining -= DistanceTraveled;
+		if(Entity->DistanceRemaining < 0.0f)
+		{
+			MakeEntityNonSpatial(Entity);
+		}
 	}
 }
 
