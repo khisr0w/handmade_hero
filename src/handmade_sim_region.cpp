@@ -2,9 +2,9 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:10:06 AM                                         |
+    |    Last Modified:  11/28/2020 5:11:48 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 internal sim_entity_hash *
 GetHashFromStorageIndex(sim_region *SimRegion, uint32_t StorageIndex)
@@ -41,6 +41,20 @@ GetEntityByStorageIndex(sim_region *SimRegion, uint32_t StorageIndex)
 	return Result;
 }
 
+inline v2
+GetSimSpaceP(sim_region *SimRegion, low_entity *Stored)
+{
+    // NOTE Map the entity into camera space
+	v2 Result = InvalidP;
+	if(!IsSet(&Stored->Sim, EntityFlag_Nonspatial))
+	{
+		world_difference Diff = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
+		Result = Diff.dXY;
+	}
+
+    return(Result);
+}
+
 internal sim_entity *
 AddEntity(game_state *GameState, sim_region *SimRegion, uint32_t StorageIndex, low_entity *Source, v2 *SimP);
 inline void
@@ -52,7 +66,10 @@ LoadEntityReference(game_state *GameState, sim_region *SimRegion, entity_referen
 		if(Entry->Ptr == 0)
 		{
 			Entry->Index = Ref->Index;
-			Entry->Ptr = AddEntity(GameState, SimRegion, Ref->Index, GetLowEntity(GameState, Ref->Index), 0);
+			low_entity *LowEntity = GetLowEntity(GameState, Ref->Index);
+			v2 P = GetSimSpaceP(SimRegion, LowEntity);
+
+			Entry->Ptr = AddEntity(GameState, SimRegion, Ref->Index, LowEntity, &P);
 		}
 
 		Ref->Ptr = Entry->Ptr;
@@ -95,6 +112,7 @@ AddEntityRaw(game_state *GameState, sim_region *SimRegion, uint32_t StorageIndex
 			}
 
 			Entity->StorageIndex = StorageIndex;
+			Entity->Updatable = false;
 		}
 		else
 		{
@@ -103,20 +121,6 @@ AddEntityRaw(game_state *GameState, sim_region *SimRegion, uint32_t StorageIndex
 	}
 
     return(Entity);
-}
-
-inline v2
-GetSimSpaceP(sim_region *SimRegion, low_entity *Stored)
-{
-    // NOTE Map the entity into camera space
-	v2 Result = InvalidP;
-	if(!IsSet(&Stored->Sim, EntityFlag_Nonspatial))
-	{
-		world_difference Diff = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
-		Result = Diff.dXY;
-	}
-
-    return(Result);
 }
 
 internal sim_entity *
@@ -128,6 +132,7 @@ AddEntity(game_state *GameState, sim_region *SimRegion, uint32_t LowEntityIndex,
         if(SimP)
         {
             Dest->P = *SimP;
+			Dest->Updatable = IsInRectangle(SimRegion->UpdatableBounds, Dest->P);
         }
         else
         {
@@ -146,9 +151,14 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
     sim_region *SimRegion = PushStruct(SimArena, sim_region);
 	ZeroStruct(SimRegion->Hash);
 
+	// TODO Calculate this eventually from the maximum value of
+	// all entities radius plus speed.
+	real32 UpdateSafetyMargin = 1.0f;
+
     SimRegion->World = World;
     SimRegion->Origin = Origin;
-    SimRegion->Bounds = Bounds;
+    SimRegion->UpdatableBounds = Bounds;
+    SimRegion->Bounds = AddRadiusTo(SimRegion->UpdatableBounds, UpdateSafetyMargin, UpdateSafetyMargin);
 
     // TODO Need to be more specific about entity counts
     SimRegion->MaxEntityCount = 4096;
@@ -184,8 +194,6 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
 							v2 SimSpaceP = GetSimSpaceP(SimRegion, Low);
 							if(IsInRectangle(SimRegion->Bounds, SimSpaceP))
 							{
-								// TODO Check a second rectangle to set the entity
-								// to be "movable" or not!
 								AddEntity(GameState, SimRegion, LowEntityIndex, Low, &SimSpaceP);
 							}
 						}
@@ -211,7 +219,7 @@ EndSim(sim_region *Region, game_state *GameState)
     {
         low_entity *Stored = GameState->LowEntities + Entity->StorageIndex;
 
-		Assert(IsSet(&Stored->Sim, EntityFlag_Simming));
+ 		Assert(IsSet(&Stored->Sim, EntityFlag_Simming));
 		Stored->Sim = *Entity;
 		Assert(!IsSet(&Stored->Sim, EntityFlag_Simming));
 
@@ -306,6 +314,15 @@ MoveEntity(sim_region *SimRegion, sim_entity *Entity, real32 dt, move_spec *Move
 	v2 PlayerDelta = (0.5f*ddP*Square(dt) + Entity->dP*dt);
 	Entity->dP = ddP*dt + Entity->dP;
 	v2 NewPlayerP = OldPlayerP + PlayerDelta;
+
+	// WARNING Haphazard jump code inserted here
+	real32 ddZ = -9.8f;
+	Entity->Z = 0.5f*ddZ*Square(dt) + Entity->dZ*dt + Entity->Z;
+	Entity->dZ = ddZ*dt + Entity->dZ;
+	if(Entity->Z < 0)
+	{
+		Entity->Z = 0;
+	}
 
 	for(uint32_t Iteration = 0;
 		Iteration < 4;

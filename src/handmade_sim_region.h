@@ -2,9 +2,9 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:12:19 AM                                         |
+    |    Last Modified:  11/28/2020 5:52:40 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 #if !defined(HANDMADE_SIM_REGION_H)
 #define HIT_POINT_SUB_COUNT 4
@@ -42,15 +42,19 @@ union entity_reference
 
 enum sim_entity_flags
 {
-	EntityFlag_Collides = (1 << 1),
-	EntityFlag_Nonspatial = (1 << 2),
+	EntityFlag_Collides = (1 << 0),
+	EntityFlag_Nonspatial = (1 << 1),
 
 	EntityFlag_Simming = (1 << 30),
 };
 
 struct sim_entity
 {
+	// NOTE These are only for the sim region
 	uint32_t StorageIndex;
+	bool32 Updatable;
+
+	//
 
 	entity_type Type;
 	uint32_t Flags;
@@ -90,6 +94,7 @@ struct sim_region
 
 	world_position Origin;
 	rectangle2 Bounds;
+	rectangle2 UpdatableBounds;
 
 	uint32_t MaxEntityCount;
 	uint32_t EntityCount;

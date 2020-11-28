@@ -2,9 +2,9 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:11:50 AM                                         |
+    |    Last Modified:  11/27/2020 8:17:02 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 union v2
 {
@@ -250,6 +250,17 @@ IsInRectangle(rectangle2 Rectangle, v2 Test)
 					 (Test.X < Rectangle.Max.X) &&
 					 (Test.Y >= Rectangle.Min.Y) &&
 					 (Test.Y < Rectangle.Max.Y));
+
+	return Result;
+}
+
+inline rectangle2
+AddRadiusTo(rectangle2 A, real32 RadiusW, real32 RadiusH)
+{
+	rectangle2 Result;
+
+	Result.Min = A.Min - V2(RadiusW, RadiusH);
+	Result.Max = A.Max + V2(RadiusW, RadiusH);
 
 	return Result;
 }

@@ -1,4 +1,13 @@
+/*  +======| File Info |===============================================================+
+    |                                                                                  |
+    |     Subdirectory:  /src                                                          |
+    |    Creation date:  Undefined                                                     |
+    |    Last Modified:  11/28/2020 12:10:31 AM                                        |
+    |                                                                                  |
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
+
 #if !defined(WIN32_HANDMADE_H)
+
 struct win32_offscreen_buffer {
  
     BITMAPINFO Info;

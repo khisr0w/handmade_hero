@@ -4,7 +4,7 @@
     |    Creation date:  Undefined                                                     |
     |    Last Modified:  11/27/2020 5:12:05 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 
 global_var uint32_t RandomNumberTable[] = 

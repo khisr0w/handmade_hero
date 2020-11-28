@@ -4,7 +4,7 @@
     |    Creation date:  Undefined                                                     |
     |    Last Modified:  11/27/2020 5:10:24 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 // TODO think about the safe margin
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX/64)

@@ -4,7 +4,7 @@
     |    Creation date:  Undefined                                                     |
     |    Last Modified:  11/27/2020 5:11:22 AM                                         |
     |                                                                                  |
-    +=====================| Sayed Abid Hashimi, Copyright Â© All rights reserved |======+  */
+    +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 #if !defined(HANDMADE_INSTRINSICS_H)
 
