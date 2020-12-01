@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/28/2020 5:11:48 AM                                         |
+    |    Last Modified:  11/30/2020 8:34:46 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -289,13 +289,25 @@ TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 Pla
 	return Hit;
 }
 
+inline bool32
+TypesMatch(entity_type AType, sim_entity *A,
+		   entity_type BType, sim_entity *B)
+{
+}
+
+internal void
+HandleCollision(sim_entity *A, sim_entity *B)
+{
+	if((A->Type ==  EntityType_Monstar) &&
+	   (B->Type == EntityType_Sword))
+	{
+		--A->HitPointMax;
+		MakeEntityNonSpatial(B);
+	}
+}
 internal void
 MoveEntity(sim_region *SimRegion, sim_entity *Entity, real32 dt, move_spec *MoveSpec, v2 ddP)
 {
-	Assert(!IsSet(Entity, EntityFlag_Nonspatial));
-
-	world *World = SimRegion->World;
-
 	if(MoveSpec->UnitMaxAccelVector)
 	{
 		real32 ddPLengthSq = LengthSq(ddP);
@@ -324,85 +336,128 @@ MoveEntity(sim_region *SimRegion, sim_entity *Entity, real32 dt, move_spec *Move
 		Entity->Z = 0;
 	}
 
+	real32 DistanceRemaining = Entity->DistanceLimit;
+	if(DistanceRemaining == 0.0f)
+	{
+		DistanceRemaining = 10000.0f;
+	}
+
 	for(uint32_t Iteration = 0;
 		Iteration < 4;
 		++Iteration)
 	{
 		real32 tMin = 1.0f;
-		v2 WallNormal = {};
-		sim_entity *HitEntity = 0;
-
-		v2 DesiredPosition = Entity->P + PlayerDelta;
-
-		if(IsSet(Entity, EntityFlag_Collides) &&
-		   !IsSet(Entity, EntityFlag_Nonspatial))
+		real32 PlayerDeltaLength = Length(PlayerDelta);
+		// TODO What do we want to do for epsilons here
+		// Think this through for the final collision code here
+		if(PlayerDeltaLength > 0.0f)
 		{
-			for(uint32_t TestHighEntityIndex = 0;
-				TestHighEntityIndex < SimRegion->EntityCount;
-				++TestHighEntityIndex)
+			if(PlayerDeltaLength > DistanceRemaining)
 			{
-				sim_entity *TestEntity = SimRegion->Entities + TestHighEntityIndex;
-				if(Entity != TestEntity)
+				tMin = (DistanceRemaining / PlayerDeltaLength);
+			}
+
+			v2 WallNormal = {};
+			sim_entity *HitEntity = 0;
+
+			v2 DesiredPosition = Entity->P + PlayerDelta;
+
+			bool32 StopsOnCollision = IsSet(Entity, EntityFlag_Collides);
+
+			if(!IsSet(Entity, EntityFlag_Nonspatial))
+			{
+				for(uint32_t TestHighEntityIndex = 0;
+						TestHighEntityIndex < SimRegion->EntityCount;
+						++TestHighEntityIndex)
 				{
-					if(IsSet(TestEntity, EntityFlag_Collides) &&
-					   !IsSet(TestEntity, EntityFlag_Nonspatial))
+					sim_entity *TestEntity = SimRegion->Entities + TestHighEntityIndex;
+					if(Entity != TestEntity)
 					{
-						real32 DiameterW = TestEntity->Width + Entity->Width;
-						real32 DiameterH = TestEntity->Height + Entity->Height;
+						if(IsSet(TestEntity, EntityFlag_Collides) &&
+						   !IsSet(TestEntity, EntityFlag_Nonspatial))
+						{
+							real32 DiameterW = TestEntity->Width + Entity->Width;
+							real32 DiameterH = TestEntity->Height + Entity->Height;
 
-						v2 MinCorner = -0.5f*v2{DiameterW, DiameterH};
-						v2 MaxCorner = 0.5f*v2{DiameterW, DiameterH};
+							v2 MinCorner = -0.5f*v2{DiameterW, DiameterH};
+							v2 MaxCorner = 0.5f*v2{DiameterW, DiameterH};
 
-						v2 Rel = Entity->P - TestEntity->P;
+							v2 Rel = Entity->P - TestEntity->P;
 
-						// NOTE: when will the player hit the wall =>  t = (wx - p0x) / dx
-						// NOTE: Test all four walls and take the minimum t of it.
-						if(TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
-									MinCorner.Y, MaxCorner.Y))
-						{
-							WallNormal = v2{-1, 0};
-							HitEntity = TestEntity;
-						}
-						if(TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
-									MinCorner.Y, MaxCorner.Y))
-						{
-							WallNormal = v2{1, 0};
-							HitEntity = TestEntity;
-						}
-						if(TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
-									MinCorner.X, MaxCorner.X))
-						{
-							WallNormal = v2{0, -1};
-							HitEntity = TestEntity;
-						}
-						if(TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
-									MinCorner.X, MaxCorner.X))
-						{
-							WallNormal = v2{0, 1};
-							HitEntity = TestEntity;
+							// NOTE: when will the player hit the wall =>  t = (wx - p0x) / dx
+							// NOTE: Test all four walls and take the minimum t of it.
+							if(TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
+										MinCorner.Y, MaxCorner.Y))
+							{
+								WallNormal = v2{-1, 0};
+								HitEntity = TestEntity;
+							}
+							if(TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
+										MinCorner.Y, MaxCorner.Y))
+							{
+								WallNormal = v2{1, 0};
+								HitEntity = TestEntity;
+							}
+							if(TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
+										MinCorner.X, MaxCorner.X))
+							{
+								WallNormal = v2{0, -1};
+								HitEntity = TestEntity;
+							}
+							if(TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
+										MinCorner.X, MaxCorner.X))
+							{
+								WallNormal = v2{0, 1};
+								HitEntity = TestEntity;
+							}
 						}
 					}
 				}
 			}
-		}
 
-		Entity->P += tMin*PlayerDelta;
-		if(HitEntity)
-		{
-			Entity->dP = Entity->dP - 1*Inner(Entity->dP, WallNormal)*WallNormal;
-			PlayerDelta = DesiredPosition - Entity->P;
-			PlayerDelta = PlayerDelta - 1*Inner(PlayerDelta, WallNormal)*WallNormal; 
+			Entity->P += tMin*PlayerDelta;
+			DistanceRemaining -= tMin*PlayerDeltaLength;
+			if(HitEntity)
+			{
+				PlayerDelta = DesiredPosition - Entity->P;
+				if(StopsOnCollision)
+				{
+					PlayerDelta = PlayerDelta - 1*Inner(PlayerDelta, WallNormal)*WallNormal; 
+					Entity->dP = Entity->dP - 1*Inner(Entity->dP, WallNormal)*WallNormal;
+				}
+				// TODO Need our collision table here.
 
-			// Entity->AbsTileZ += HitLow->Sim.dAbsTileZ;
+				sim_entity *A = Entity;
+				sim_entity *B = HitEntity;
+				if(A->Type > B->Type)
+				{
+					sim_entity *Temp = A;
+					A = B;
+					B = Temp;
+				}
+				HandleCollision(A, B);
+
+				 // TODO Stairs must be created
+				// Entity->AbsTileZ += HitLow->Sim.dAbsTileZ;
+			}
+			else
+			{
+				break;
+			}
 		}
 		else
 		{
 			break;
 		}
 	}
+	
+	if(Entity->DistanceLimit != 0.0f)
+	{
+		Entity->DistanceLimit = DistanceRemaining;
+	}
 
 	// TODO change this to use the acceleration vector for hero face
-	if((Entity->dP.X == 0.0f ) > (Entity->dP.Y == 0.0f ))
+	if((Entity->dP.X == 0.0f) > (Entity->dP.Y == 0.0f))
 	{
 		// NOTE Should not be handled
 	}

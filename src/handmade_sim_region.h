@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/28/2020 5:52:40 AM                                         |
+    |    Last Modified:  11/30/2020 5:53:54 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -65,6 +65,8 @@ struct sim_entity
 	real32 Z;
 	real32 dZ;
 
+	real32 DistanceLimit;
+
 	uint32_t ChunkZ;
 
 	real32 Height, Width;
@@ -74,12 +76,11 @@ struct sim_entity
 
 	int32_t dAbsTileZ;
 
-	// TODO Should hit points be entities?
+	// TODO Should hit points themselves be entities?
 	uint32_t HitPointMax;
 	hit_point HitPoint[16];
 
 	entity_reference Sword;
-	real32 DistanceRemaining;
 };
 
 struct sim_entity_hash

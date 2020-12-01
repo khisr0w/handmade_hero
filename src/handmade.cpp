@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/28/2020 5:57:10 AM                                         |
+    |    Last Modified:  11/30/2020 6:05:29 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -820,7 +820,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 								sim_entity *Sword = Entity->Sword.Ptr;
 								if(Sword && IsSet(Sword, EntityFlag_Nonspatial))
 								{
-									Sword->DistanceRemaining = 5.0f;
+									Sword->DistanceLimit = 5.0f;
 									MakeEntitySpatial(Sword, Entity->P, 5.0f*ConHero->dSword);
 								}
 							}
@@ -902,10 +902,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 					// a movement limit for an entity, and then update this routine
 					// to use that to know when to kill the sword.
 					v2 OldP = Entity->P;
-					real32 DistanceTraveled = Length(Entity->P - OldP);
 
-					Entity->DistanceRemaining -= DistanceTraveled;
-					if(Entity->DistanceRemaining < 0.0f)
+					if(Entity->DistanceLimit == 0.0f)
 					{
 						MakeEntityNonSpatial(Entity);
 					}
