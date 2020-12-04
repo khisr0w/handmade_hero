@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/30/2020 5:53:54 PM                                         |
+    |    Last Modified:  12/1/2020 9:59:43 AM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -26,10 +26,11 @@ struct hit_point
 enum entity_type
 {
 	EntityType_Null,
+
 	EntityType_Hero,
 	EntityType_Wall,
-	EntityType_Monstar,
 	EntityType_Familiar,
+	EntityType_Monstar,
 	EntityType_Sword,
 };
 

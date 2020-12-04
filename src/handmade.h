@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:58:34 AM                                         |
+    |    Last Modified:  12/3/2020 5:01:36 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -112,6 +112,15 @@ struct controlled_hero
 	real32 dZ;
 };
 
+struct pairwise_collision_rule
+{
+	bool32 ShouldCollide;
+	uint32_t StorageIndexA;
+	uint32_t StorageIndexB;
+
+	pairwise_collision_rule *NextInHash;
+};
+
 struct game_state
 {
 	memory_arena WorldArena;
@@ -134,6 +143,10 @@ struct game_state
 
 	loaded_bitmap Tree;
 	loaded_bitmap Sword;
+
+	// TODO This must be a power of two
+	pairwise_collision_rule *CollisionRuleHash[256];
+	pairwise_collision_rule *FirstFreeCollisionRule;
 };
 
 struct entity_visible_piece_group
@@ -155,5 +168,12 @@ GetLowEntity(game_state *GameState, uint32_t Index)
 
 	return Result;
 }
+
+internal void 
+AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 ShouldCollide);
+
+internal void
+ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
+
 #define HANDMADE_H
 #endif
