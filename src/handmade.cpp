@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/3/2020 11:23:26 PM                                         |
+    |    Last Modified:  12/5/2020 8:50:50 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -457,6 +457,14 @@ ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex)
 {
 	// TODO Need to make a better data structure that would allow
 	// the removal of collision rules without searching the entire table.
+	// NOTE One way to make the removal easy would be to always add BOTH
+	// orders of the pairs of storage indices to the hash table, so no
+	// matter which position the entity is in, you can always find it.
+	// Then, when you do your first pass through for removal, you just
+	// remember the original top of the free list, and when you are done,
+	// do a pass through all the new things on the free list, and remove
+	// the reverse of the those pairs.
+
 	for(uint32_t HashBucket = 0;
 		HashBucket < ArrayCount(GameState->CollisionRuleHash);
 		++HashBucket)

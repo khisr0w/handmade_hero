@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/3/2020 5:41:49 PM                                          |
+    |    Last Modified:  12/6/2020 12:15:08 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -300,31 +300,34 @@ ShouldCollide(game_state *GameState, sim_entity *A, sim_entity *B)
 {
 	bool32 Result = false;
 
-	if(A->StorageIndex > B->StorageIndex)
+	if(A != B)
 	{
-		sim_entity *Temp = A;
-		A = B;
-		B = Temp;
-	}
-
-	if(!IsSet(A, EntityFlag_Nonspatial) &&
-	   !IsSet(B, EntityFlag_Nonspatial))
-	{
-		// TODO Property-based logic goes here!
-		Result = true;
-	}
-
-	// TODO WRITE BETTER HASH FUNCTION!!!
-	uint32_t HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
-	for(pairwise_collision_rule *Rule = GameState->CollisionRuleHash[HashBucket];
-		Rule;
-		Rule = Rule->NextInHash)
-	{
-		if((Rule->StorageIndexA == A->StorageIndex) &&
-		   (Rule->StorageIndexB == B->StorageIndex))
+		if(A->StorageIndex > B->StorageIndex)
 		{
-			Result = Rule->ShouldCollide;
-			break;
+			sim_entity *Temp = A;
+			A = B;
+			B = Temp;
+		}
+
+		if(!IsSet(A, EntityFlag_Nonspatial) &&
+				!IsSet(B, EntityFlag_Nonspatial))
+		{
+			// TODO Property-based logic goes here!
+			Result = true;
+		}
+
+		// TODO WRITE BETTER HASH FUNCTION!!!
+		uint32_t HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
+		for(pairwise_collision_rule *Rule = GameState->CollisionRuleHash[HashBucket];
+			Rule;
+			Rule = Rule->NextInHash)
+		{
+			if((Rule->StorageIndexA == A->StorageIndex) &&
+					(Rule->StorageIndexB == B->StorageIndex))
+			{
+				Result = Rule->ShouldCollide;
+				break;
+			}
 		}
 	}
 	
@@ -368,7 +371,8 @@ HandleCollision(sim_entity *A, sim_entity *B)
 }
 
 internal void
-MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, real32 dt, move_spec *MoveSpec, v2 ddP)
+MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, real32 dt,
+		   move_spec *MoveSpec, v2 ddP)
 {
 	if(MoveSpec->UnitMaxAccelVector)
 	{

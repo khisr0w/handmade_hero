@@ -2,11 +2,63 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/3/2020 5:01:36 PM                                          |
+    |    Last Modified:  12/6/2020 12:13:06 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
-// This is the header file for the platform independent layer
+/*
+	TODO:
+
+	ARCHITECTURE EXPLORATION
+	- Collision Detection?
+	  - Entry/exit?
+	  - What's the plan for robustness / shape definition?
+	- Implement multiple sim regions per frame
+	  - Per-entity clocking
+	  - Sim region merging? For multiple players?
+	- Z!
+	  - Clen Up things using v3
+	  - Figure out how you go "up" and "down", and how is this rendered?
+
+	- Debug code
+  	  - Logging
+	  - Diagramming
+	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
+
+	- Audio
+	  - Sound effect triggers
+	  - Ambient sounds
+	  - Music
+	- Asset streaming
+
+	- Metagame / save game?
+	  - How do you enter "save slot"?
+	  - Persistent unlocks/etc.
+	  - Do we allow saved games? Probably yes, just only for "pausing",
+	  * Continuous save for crash recovery?
+	- Rudimentary world gen (no quality, just "what sorts of things" we do)
+	  - Placement of background things
+	  - Connectivity?
+	  - Non-overlapping?
+	  - Map display
+	    - Magnets - how do they work?
+
+	- AI
+	  - Rudimentary monstar behanvior example
+	  * Pathfinding
+	  - AI "storage"
+
+	* Animation, should probably lead into the rendering
+	  - Skeletal animation
+	  - Particle systems
+
+	PRODUCTION
+	- Rendering
+	-> GAME
+	  - Entity system
+	  - World generation
+*/
+
 #if !defined(HANDMADE_H)
 
 #include "handmade_platform.h"
