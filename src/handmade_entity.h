@@ -2,13 +2,13 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:08:03 AM                                         |
+    |    Last Modified:  12/7/2020 4:41:36 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 #if !defined(HANDMADE_ENTITY_H)
 
-#define InvalidP V2(100000.0f, 100000.0f)
+#define InvalidP V3(100000.0f, 100000.0f, 100000.0f)
 
 inline bool32
 IsSet(sim_entity *Entity, uint32_t Flag)
@@ -38,7 +38,7 @@ MakeEntityNonSpatial(sim_entity *Entity)
 }
 
 inline void
-MakeEntitySpatial(sim_entity *Entity, v2 P, v2 dP)
+MakeEntitySpatial(sim_entity *Entity, v3 P, v3 dP)
 {
 	ClearFlag(Entity, EntityFlag_Nonspatial);
 	Entity->P = P;

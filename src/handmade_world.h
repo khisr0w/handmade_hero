@@ -2,15 +2,9 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  11/27/2020 5:12:49 AM                                         |
+    |    Last Modified:  12/7/2020 5:04:44 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
-
-struct world_difference
-{
-	v2 dXY;
-	real32 dZ;
-};
 
 struct world_position
 {
@@ -19,7 +13,7 @@ struct world_position
 	int32_t ChunkZ;
 
 	// NOTE This is Tile-relative X and Y
-	v2 Offset_;
+	v3 Offset_;
 };
 
 struct world_entity_block
@@ -44,7 +38,8 @@ struct world_chunk
 struct world
 {
 	real32 TileSideInMeters;
-	real32 ChunkSideInMeters;
+	real32 TileDepthInMeters;
+	v3 ChunkDimInMeters;
 
 	world_entity_block *FirstFree;
 
