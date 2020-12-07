@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 5:06:07 PM                                          |
+    |    Last Modified:  12/7/2020 9:12:52 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -34,7 +34,7 @@ inline bool32
 IsCannonical(real32 ChunkDim, real32 TileRel)
 {
 	// TODO Fix the floating point math so this can be < only
-	real32 Epsilon = 0.0001f;
+	real32 Epsilon = 0.01f;
 	bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
 					 (TileRel <= (0.5f*ChunkDim  + Epsilon)));
 	return Result;
@@ -155,7 +155,7 @@ ChunkPositionFromTilePosition(world *World, int32_t AbsTileX, int32_t AbsTileY, 
 {
 	world_position BasePos = {};
 
-	v3 Offset = Hadamard(World->ChunkDimInMeters, V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ));
+	v3 Offset = World->TileSideInMeters * V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ);
 	world_position Result = MapIntoChunkSpace(World, BasePos, Offset);
 
 	Assert(IsCannonical(World, Result.Offset_));

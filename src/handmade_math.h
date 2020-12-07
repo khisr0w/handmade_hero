@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 4:52:18 PM                                          |
+    |    Last Modified:  12/7/2020 9:09:10 PM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -400,8 +400,8 @@ inline bool32
 IsInRectangle(rectangle2 Rectangle, v2 Test)
 {
 	bool32 Result = ((Test.X >= Rectangle.Min.X) &&
-					 (Test.X < Rectangle.Max.X) &&
 					 (Test.Y >= Rectangle.Min.Y) &&
+					 (Test.X < Rectangle.Max.X) &&
 					 (Test.Y < Rectangle.Max.Y));
 
 	return Result;
@@ -488,9 +488,11 @@ inline bool32
 IsInRectangle(rectangle3 Rectangle, v3 Test)
 {
 	bool32 Result = ((Test.X >= Rectangle.Min.X) &&
-					 (Test.X < Rectangle.Max.X) &&
 					 (Test.Y >= Rectangle.Min.Y) &&
-					 (Test.Y < Rectangle.Max.Y));
+					 (Test.Z >= Rectangle.Min.Z) &&
+					 (Test.X < Rectangle.Max.X) &&
+					 (Test.Y < Rectangle.Max.Y) &&
+					 (Test.Z < Rectangle.Max.Z));
 
 	return Result;
 }

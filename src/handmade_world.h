@@ -2,12 +2,18 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 5:04:44 PM                                          |
+    |    Last Modified:  12/8/2020 1:31:28 AM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 struct world_position
 {
+	// TODO It seems like we have to store ChunkX/Y/Z with each
+	// entity because even though the sim region gather doesn't
+	// need it at first, and we could get by without it, entity
+	// references pull in entities WITHOUT going through their
+	// world_chunk, and thus still need to know the ChunkX/Y/Z
+
 	int32_t ChunkY;
 	int32_t ChunkX;
 	int32_t ChunkZ;

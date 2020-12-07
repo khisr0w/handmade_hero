@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 6:13:00 PM                                          |
+    |    Last Modified:  12/8/2020 3:53:02 AM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -11,12 +11,11 @@
 
 	ARCHITECTURE EXPLORATION
 	- Z!
-	  - Minkowski Inclusion test for our sim region begin / updatable bounds.
 	  - Figure out how you go "up" and "down", and how is this rendered?
-	  - SOLVED THE PUZZLER from world_position?
 	- Collision Detection?
 	  - Entry/exit?
 	  - What's the plan for robustness / shape definition?
+	  - (Implement reprojection to handle interpenetration)
 	- Implement multiple sim regions per frame
 	  - Per-entity clocking
 	  - Sim region merging? For multiple players?
@@ -63,6 +62,7 @@
 #if !defined(HANDMADE_H)
 
 #include "handmade_platform.h"
+#include "handmade_random.h"
 
 #define Minimum(A, B) (((A) < (B)) ? A : B)
 #define Maximum(A, B) (((A) > (B)) ? A : B)
@@ -121,6 +121,7 @@ ZeroSize(memory_index Size, void *Ptr)
 #include "handmade_math.h"
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
+#include "handmade_entity.h"
 
 struct loaded_bitmap
 {
@@ -138,7 +139,6 @@ struct hero_bitmaps
 	loaded_bitmap Torso;
 };
 
-struct sim_entity;
 struct low_entity
 {
 	world_position P;

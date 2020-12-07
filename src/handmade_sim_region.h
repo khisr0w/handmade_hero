@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 5:22:02 PM                                          |
+    |    Last Modified:  12/8/2020 2:17:50 AM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -65,7 +65,7 @@ struct sim_entity
 
 	real32 DistanceLimit;
 
-	real32 Height, Width;
+	v3 Dim;
 
 	uint32_t FacingDirection;
 	real32 tBob;
@@ -88,6 +88,8 @@ struct sim_entity_hash
 struct sim_region
 {
 	world *World;
+	real32 MaxEntityRadius;
+	real32 MaxEntityVelocity;
 
 	world_position Origin;
 	rectangle3 Bounds;

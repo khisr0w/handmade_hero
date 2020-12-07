@@ -2,14 +2,11 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 5:38:14 PM                                          |
+    |    Last Modified:  12/8/2020 3:53:22 AM                                          |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 #include "handmade.h"
-#include "handmade_random.h"
-#include "handmade_entity.h"
-#include "handmade_sim_region.h"
 
 // +====| Unity Build |====+
 #include "handmade_world.cpp"
@@ -314,8 +311,8 @@ AddSword(game_state *GameState)
 {
 	add_low_entity_result Entity  = AddLowEntity(GameState, EntityType_Sword, NullPosition());
 
-	Entity.Low->Sim.Height = 0.5f;
-	Entity.Low->Sim.Width = 1.0f;
+	Entity.Low->Sim.Dim.Y = 0.5f;
+	Entity.Low->Sim.Dim.X = 1.0f;
 	AddFlag(&Entity.Low->Sim, EntityFlag_Nonspatial);
 
 	return Entity;
@@ -327,8 +324,8 @@ AddPlayer(game_state *GameState)
 	world_position P = GameState->CameraP;
 	add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Hero, P);
 
-	Entity.Low->Sim.Height = 0.5f;
-	Entity.Low->Sim.Width = 1.0f;
+	Entity.Low->Sim.Dim.Y = 0.5f;
+	Entity.Low->Sim.Dim.X = 1.0f;
 	AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
 	InitHitpoints(Entity.Low, 3);
@@ -350,8 +347,8 @@ AddFamiliar(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_
 	world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 	add_low_entity_result Entity  = AddLowEntity(GameState, EntityType_Familiar, P);
 
-	Entity.Low->Sim.Height = 0.5f;
-	Entity.Low->Sim.Width = 1.0f;
+	Entity.Low->Sim.Dim.Y = 0.5f;
+	Entity.Low->Sim.Dim.X = 1.0f;
 	AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
 	return Entity;
@@ -363,8 +360,8 @@ AddMonstar(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t
 	world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 	add_low_entity_result Entity  = AddLowEntity(GameState, EntityType_Monstar, P);
 
-	Entity.Low->Sim.Height = 0.5f;
-	Entity.Low->Sim.Width = 1.0f;
+	Entity.Low->Sim.Dim.Y = 0.5f;
+	Entity.Low->Sim.Dim.X = 1.0f;
 	AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
 	InitHitpoints(Entity.Low, 3);
@@ -378,8 +375,8 @@ AddWall(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t Ab
 	world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
 	add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Wall, P);
 
-	Entity.Low->Sim.Height = GameState->World->TileSideInMeters;
-	Entity.Low->Sim.Width = Entity.Low->Sim.Height;
+	Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
+	Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
 	AddFlag(&Entity.Low->Sim, EntityFlag_Collides);
 
 	return Entity;
@@ -839,7 +836,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	memory_arena SimArena;
 	InitializeArena(&SimArena, Memory->TransientStorageSize, Memory->TransientStorage);
-	sim_region *SimRegion = BeginSim(&SimArena, GameState, GameState->World, GameState->CameraP, CameraBounds);
+	sim_region *SimRegion = BeginSim(&SimArena, GameState, GameState->World, GameState->CameraP, CameraBounds,
+									 Input->dtForFrame);
 
 	//
 	// NOTE Render
