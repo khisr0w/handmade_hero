@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/7/2020 9:09:10 PM                                          |
+    |    Last Modified:  12/10/2020 3:56:54 AM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -504,6 +504,19 @@ AddRadiusTo(rectangle3 A, v3 Radius)
 
 	Result.Min = A.Min - Radius;
 	Result.Max = A.Max + Radius;
+
+	return Result;
+}
+
+inline bool32
+RectanglesIntersect(rectangle3 A, rectangle3 B)
+{
+	bool32 Result = !((B.Max.X < A.Min.X) ||
+					  (B.Min.X > A.Max.X) ||
+					  (B.Max.Y < A.Min.Y) ||
+					  (B.Min.Y > A.Max.Y) ||
+					  (B.Max.Z < A.Min.Z) ||
+					  (B.Min.Z > A.Max.Z));
 
 	return Result;
 }

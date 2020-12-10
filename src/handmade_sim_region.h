@@ -32,6 +32,7 @@ enum entity_type
 	EntityType_Familiar,
 	EntityType_Monstar,
 	EntityType_Sword,
+	EntityType_Stairwell,
 };
 
 struct sim_entity;

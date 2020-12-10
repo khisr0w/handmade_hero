@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/8/2020 3:53:22 AM                                          |
+    |    Last Modified:  12/10/2020 4:37:20 AM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -370,6 +370,19 @@ AddMonstar(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t
 }
 
 internal add_low_entity_result
+AddStair(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t AbsTileZ)
+{
+	world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
+	add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Stairwell, P);
+
+	Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
+	Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
+	Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
+
+	return Entity;
+}
+
+internal add_low_entity_result
 AddWall(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t AbsTileZ)
 {
 	world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
@@ -552,6 +565,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		GameState->Sword = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
 				"handmade_hero_legacy_art/early_data/test2/rock03.bmp");
 
+		GameState->Stairwell = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/rock02.bmp");
+
 		hero_bitmaps *Bitmap;
 
 		Bitmap = GameState->HeroBitmaps;
@@ -651,40 +667,38 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 					uint32_t AbsTileX = ScreenX*TilesPerWidth + TileX;
 					uint32_t AbsTileY = ScreenY*TilesPerHeight + TileY;
 
-					uint32_t TileValue = 1;
+					bool32 ShouldBeDoor = false;
 					if((TileX == 0) && (!DoorLeft || (TileY != (TilesPerHeight/2))))
 					{
-						TileValue = 2;
+						ShouldBeDoor = true;
 					}
 					if((TileX == (TilesPerWidth - 1)) && (!DoorRight || (TileY != (TilesPerHeight/2))))
 					{
-						TileValue = 2;
+						ShouldBeDoor = true;
 					}
 
 					if((TileY == 0) && (!DoorBottom || (TileX != (TilesPerWidth/2))))
 					{
-						TileValue = 2;
+						ShouldBeDoor = true;
 					}
 					if((TileY == TilesPerHeight - 1) && (!DoorTop || (TileX != (TilesPerWidth/2))))
 					{
-						TileValue = 2;
-					}
-					if((TileX == 10) && (TileY == 6))
-					{
-						if(DoorUp)
-						{
-							TileValue = 3;
-						}
-						else if(DoorDown)
-						{
-							TileValue = 4;
-						}
+						ShouldBeDoor = true;
 					}
 
-					if(TileValue == 2)
+					if(ShouldBeDoor)
 					{
 						AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
 					}
+
+					else if(CreatedZDoor)
+					{
+						if((TileX == 10) && (TileY == 6))
+						{
+							AddStair(GameState, AbsTileX, AbsTileY, AbsTileZ/*, DoorDown ? AbsTileZ - 1 : AbsTileZ*/);
+						}
+					}
+
 				}
 			}
 
@@ -970,6 +984,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 					PushBitmap(&PieceGroup, &HeroBitmaps->Head, V2(0, 0), 0.25f*BobSin, HeroBitmaps->Align);
 				} break;
 
+				case EntityType_Stairwell:
+				{
+					PushBitmap(&PieceGroup, &GameState->Stairwell, V2(0, 0), 0, V2(37, 37));
+				} break;
 				case EntityType_Sword:
 				{
 					MoveSpec.UnitMaxAccelVector = false;

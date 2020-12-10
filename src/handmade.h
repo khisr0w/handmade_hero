@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/8/2020 3:53:02 AM                                          |
+    |    Last Modified:  12/10/2020 5:04:41 AM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -10,15 +10,18 @@
 	TODO:
 
 	ARCHITECTURE EXPLORATION
-	- Z!
-	  - Figure out how you go "up" and "down", and how is this rendered?
 	- Collision Detection?
+	  - Transient collision rules! Clear based on flag.
+	    - Allow non-transient rules to override transient ones.
 	  - Entry/exit?
 	  - What's the plan for robustness / shape definition?
 	  - (Implement reprojection to handle interpenetration)
+	- Z!
+	  - Figure out how you go "up" and "down", and how is this rendered?
 	- Implement multiple sim regions per frame
 	  - Per-entity clocking
 	  - Sim region merging? For multiple players?
+	  - Simple zoom out view for testing
 
 	- Debug code
   	  - Logging
@@ -165,6 +168,12 @@ struct controlled_hero
 	real32 dZ;
 };
 
+enum pairwise_collision_rule_flag
+{
+	PairCollisionFlag_ShouldCollide = 0x1,
+	PairCollisionFlag_Temporary = 0x2,
+};
+
 struct pairwise_collision_rule
 {
 	bool32 ShouldCollide;
@@ -173,6 +182,11 @@ struct pairwise_collision_rule
 
 	pairwise_collision_rule *NextInHash;
 };
+struct game_state;
+internal void 
+AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 ShouldCollide);
+internal void
+ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
 
 struct game_state
 {
@@ -196,6 +210,7 @@ struct game_state
 
 	loaded_bitmap Tree;
 	loaded_bitmap Sword;
+	loaded_bitmap Stairwell;
 
 	// TODO This must be a power of two
 	pairwise_collision_rule *CollisionRuleHash[256];
@@ -221,12 +236,6 @@ GetLowEntity(game_state *GameState, uint32_t Index)
 
 	return Result;
 }
-
-internal void 
-AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 ShouldCollide);
-
-internal void
-ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
 
 #define HANDMADE_H
 #endif
