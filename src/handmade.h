@@ -2,7 +2,7 @@
     |                                                                                  |
     |     Subdirectory:  /src                                                          |
     |    Creation date:  Undefined                                                     |
-    |    Last Modified:  12/10/2020 5:04:41 AM                                         |
+    |    Last Modified:  12/11/2020 5:43:37 PM                                         |
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
@@ -10,14 +10,15 @@
 	TODO:
 
 	ARCHITECTURE EXPLORATION
+	- Z!
+	  - 3D collision detection working properly!
+	  - Figure out how you go "up" and "down", and how is this rendered?
 	- Collision Detection?
 	  - Transient collision rules! Clear based on flag.
 	    - Allow non-transient rules to override transient ones.
-	  - Entry/exit?
+		- Entry/exit?
 	  - What's the plan for robustness / shape definition?
 	  - (Implement reprojection to handle interpenetration)
-	- Z!
-	  - Figure out how you go "up" and "down", and how is this rendered?
 	- Implement multiple sim regions per frame
 	  - Per-entity clocking
 	  - Sim region merging? For multiple players?
@@ -168,15 +169,9 @@ struct controlled_hero
 	real32 dZ;
 };
 
-enum pairwise_collision_rule_flag
-{
-	PairCollisionFlag_ShouldCollide = 0x1,
-	PairCollisionFlag_Temporary = 0x2,
-};
-
 struct pairwise_collision_rule
 {
-	bool32 ShouldCollide;
+	bool32 CanCollide;
 	uint32_t StorageIndexA;
 	uint32_t StorageIndexB;
 
@@ -184,7 +179,7 @@ struct pairwise_collision_rule
 };
 struct game_state;
 internal void 
-AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 ShouldCollide);
+AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 CanCollide);
 internal void
 ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
 
