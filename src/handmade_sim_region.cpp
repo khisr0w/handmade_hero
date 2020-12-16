@@ -339,12 +339,6 @@ CanCollide(game_state *GameState, sim_entity *A, sim_entity *B)
 			Result = true;
 		}
 
-		if((A->Type == EntityType_Stairwell) &&
-		   (B->Type == EntityType_Hero))
-		{
-			Result = false;
-		}
-
 		// TODO WRITE BETTER HASH FUNCTION!!!
 		uint32_t HashBucket = A->StorageIndex & (ArrayCount(GameState->CollisionRuleHash) - 1);
 		for(pairwise_collision_rule *Rule = GameState->CollisionRuleHash[HashBucket];
@@ -420,8 +414,28 @@ HandleOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region, real
 	{
 		rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
 		v3 Bary = Clamp01(GetBarocentric(RegionRect, Mover->P));
+
 		*Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
 	}
+}
+
+internal bool32
+SpeculativeCollide(sim_entity *Mover, sim_entity *Region)
+{
+	bool32 Result = true;
+
+	if(Region->Type == EntityType_Stairwell)
+	{
+		rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
+		v3 Bary = Clamp01(GetBarocentric(RegionRect, Mover->P));
+
+		// TODO this needs work!
+		real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+		real32 StepHeight = 0.1f;
+		Result = (AbsoluteValue(Mover->P.Z - Ground) > StepHeight) || ((Bary.Y > 0.1f) && (Bary.Y < 0.9f));
+	}
+
+	return Result;
 }
 
 internal void
@@ -443,7 +457,10 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 
 	// TODO ODE here!
 	ddP += -MoveSpec->Drag*Entity->dP;
-	ddP += V3(0, 0, -9.8f); // NOTE Gravity!
+	if(!IsSet(Entity, EntityFlag_ZSupported))
+	{
+		ddP += V3(0, 0, -9.8f); // NOTE Gravity!
+	}
 
 	v3 OldPlayerP = Entity->P;
 	v3 PlayerDelta = (0.5f*ddP*Square(dt) + Entity->dP*dt);
@@ -464,6 +481,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 		++Iteration)
 	{
 		real32 tMin = 1.0f;
+
 		real32 PlayerDeltaLength = Length(PlayerDelta);
 		// TODO What do we want to do for epsilons here
 		// Think this through for the final collision code here
@@ -489,8 +507,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 					++TestHighEntityIndex)
 				{
 					sim_entity *TestEntity = SimRegion->Entities + TestHighEntityIndex;
-					if(CanCollide(GameState, Entity, TestEntity) &&
-					   (TestEntity->P.Z == Entity->P.Z))
+					if(CanCollide(GameState, Entity, TestEntity))
 					{
 						v3 MinkowskiDiameter = {TestEntity->Dim.X + Entity->Dim.X,
 												TestEntity->Dim.Y + Entity->Dim.Y,
@@ -501,31 +518,44 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 
 						v3 Rel = Entity->P - TestEntity->P;
 
-						// NOTE: when will the player hit the wall =>  t = (wx - p0x) / dx
-						// NOTE: Test all four walls and take the minimum t of it.
-						if(TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
+						real32 tMinTest = tMin;
+						v3 TestWallNormal = {};
+						bool32 HitThis = false;
+						if(TestWall(MinCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest,
 									MinCorner.Y, MaxCorner.Y))
 						{
-							WallNormal = V3(-1, 0, 0);
-							HitEntity = TestEntity;
+							TestWallNormal = V3(-1, 0, 0);
+							HitThis = true;
 						}
-						if(TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMin,
+						if(TestWall(MaxCorner.X, Rel.X, Rel.Y, PlayerDelta.X, PlayerDelta.Y, &tMinTest,
 									MinCorner.Y, MaxCorner.Y))
 						{
-							WallNormal = V3(1, 0, 0);
-							HitEntity = TestEntity;
+							TestWallNormal = V3(1, 0, 0);
+							HitThis = true;
 						}
-						if(TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
+						if(TestWall(MinCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest,
 									MinCorner.X, MaxCorner.X))
 						{
-							WallNormal = V3(0, -1, 0);
-							HitEntity = TestEntity;
+							TestWallNormal = V3(0, -1, 0);
+							HitThis = true;
 						}
-						if(TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMin,
+						if(TestWall(MaxCorner.Y, Rel.Y, Rel.X, PlayerDelta.Y, PlayerDelta.X, &tMinTest,
 									MinCorner.X, MaxCorner.X))
 						{
-							WallNormal = V3(0, 1, 0);
-							HitEntity = TestEntity;
+							TestWallNormal = V3(0, 1, 0);
+							HitThis = true;
+						}
+
+						// TODO we need to have a concept of stepping on and off of the stairs
+						if(HitThis)
+						{
+							v3 TestP = Entity->P + tMinTest*PlayerDelta;
+							if(SpeculativeCollide(Entity, TestEntity))
+							{
+								tMin = tMinTest;
+								WallNormal = TestWallNormal;
+								HitEntity = TestEntity;
+							}
 						}
 					}
 				}
@@ -555,7 +585,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 		}
 	}
 
-	real32 Ground = 0.0f;
+	real32 Ground = 0.0f; //SimRegion->GroundZBase;
 
 	// NOTE Handle events based on area overlapping
 	// TODO Handle overlapping more precisely by moving it into the collision loop?
@@ -579,11 +609,17 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 		}
 	}
 
-	// TODO This has to become real height handling / ground collision / etc.
-	if(Entity->P.Z < Ground)
+	if((Entity->P.Z <= Ground) ||
+	   (IsSet(Entity, EntityFlag_ZSupported) &&
+	   (Entity->dP.Z == 0.0f)))
 	{
 		Entity->P.Z = Ground;
 		Entity->dP.Z = 0.0f;
+		AddFlags(Entity, EntityFlag_ZSupported);
+	}
+	else
+	{
+		ClearFlags(Entity, EntityFlag_ZSupported);
 	}
 
 	if(Entity->DistanceLimit != 0.0f)

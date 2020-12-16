@@ -376,10 +376,10 @@ AddStair(game_state *GameState, uint32_t AbsTileX, uint32_t AbsTileY, uint32_t A
 													 V3(0, 0, 0.5f*GameState->World->TileDepthInMeters));
 	add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Stairwell, P);
 
-	Entity.Low->Sim.Dim.Y = GameState->World->TileSideInMeters;
-	Entity.Low->Sim.Dim.X = Entity.Low->Sim.Dim.Y;
-	// WARNING This must be changed, it's a horrible solution, you can't just arbitrarly add values.
-	Entity.Low->Sim.Dim.Z = 1.2f*GameState->World->TileDepthInMeters;
+	Entity.Low->Sim.Dim.X = GameState->World->TileSideInMeters;
+	Entity.Low->Sim.Dim.Y = 2.0f*GameState->World->TileSideInMeters;
+	Entity.Low->Sim.Dim.Z = GameState->World->TileDepthInMeters;
+	AddFlags(&Entity.Low->Sim, EntityFlag_Collides);
 
 	return Entity;
 }
@@ -695,7 +695,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 					else if(CreatedZDoor)
 					{
-						if((TileX == 10) && (TileY == 6))
+						if((TileX == 10) && (TileY == 5))
 						{
 							AddStair(GameState, AbsTileX, AbsTileY, AbsTileZ/*, DoorDown ? AbsTileZ - 1 : AbsTileZ*/);
 						}
@@ -947,7 +947,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				{
 					sim_entity *ClosestHero = 0;
 					real32 ClosestHeroDSq = Square(10.f);
-
+#if 0
 					sim_entity *TestEntity = SimRegion->Entities;
 					for(uint32_t TestEntityIndex = 0;
 						TestEntityIndex < SimRegion->MaxEntityCount;
@@ -963,7 +963,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 							}
 						}
 					}
-
+#endif
 					if(ClosestHero && (ClosestHeroDSq > Square(3.01f)))
 					{
 						// TODO PULL THE SPEED OUT OF MOVE ENTITY
@@ -1032,8 +1032,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
 			}
 
-			real32 EntityGroundPointX = ScreenCenterX + MetersToPixels*Entity->P.X; 
-			real32 EntityGroundPointY = ScreenCenterY - MetersToPixels*Entity->P.Y;
+			real32 ZFudge = (1.0f + 0.1f*Entity->P.Z);
+
+			real32 EntityGroundPointX = ScreenCenterX + MetersToPixels*ZFudge*Entity->P.X; 
+			real32 EntityGroundPointY = ScreenCenterY - MetersToPixels*ZFudge*Entity->P.Y;
 			real32 EntityZ = -MetersToPixels*Entity->P.Z;
 #if 0
 			v2 PlayerLeftTop = {PlayerGroundPointX - 0.5f*MetersToPixels*LowEntity->Width,
