@@ -11,10 +11,11 @@
 
 	ARCHITECTURE EXPLORATION
 	- Z!
+	  - Go through and define how tall everything should be
+	  - Make sure flying things can go through low walls
 	  - Need to make a solid concept of ground levels to the camera
 	  	can be freely placed in Z and have multiple ground levels
 		in one sim region.
-	  - 3D collision detection working properly!
 	  - How is this rendered?
 	  - ZFudge!!!!!!
 	- Collision Detection?
@@ -32,6 +33,8 @@
 	  - Per-entity clocking
 	  - Sim region merging? For multiple players?
 	  - Simple zoom out view for testing
+	  - Draw tile chunks so we can verify that things are aligned /
+		in the chunks we want them to be in / etc...
 
 	- Debug code
   	  - Logging
