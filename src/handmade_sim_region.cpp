@@ -200,8 +200,8 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
 				if(Chunk)
 				{
 					for(world_entity_block *Block = &Chunk->FirstBlock;
-							Block;
-							Block = Block->Next)
+						Block;
+						Block = Block->Next)
 					{
 						for(uint32_t EntityIndexIndex = 0;
 							EntityIndexIndex < Block->EntityCount;
@@ -412,10 +412,7 @@ HandleOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region, real
 {
 	if(Region->Type == EntityType_Stairwell)
 	{
-		rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
-		v3 Bary = Clamp01(GetBarocentric(RegionRect, Mover->P));
-
-		*Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+		*Ground = GetStairGround(Region, GetEntityGroundPoint(Mover));
 	}
 }
 
@@ -426,13 +423,15 @@ SpeculativeCollide(sim_entity *Mover, sim_entity *Region)
 
 	if(Region->Type == EntityType_Stairwell)
 	{
-		rectangle3 RegionRect = RectCenterDim(Region->P, Region->Dim);
-		v3 Bary = Clamp01(GetBarocentric(RegionRect, Mover->P));
-
-		// TODO this needs work!
-		real32 Ground = Lerp(RegionRect.Min.Z, Bary.Y, RegionRect.Max.Z);
+		// TODO Needs more work!
 		real32 StepHeight = 0.1f;
-		Result = (AbsoluteValue(Mover->P.Z - Ground) > StepHeight) || ((Bary.Y > 0.1f) && (Bary.Y < 0.9f));
+#if 0
+		Result = ((AbsoluteValue(GetEntityGroundPoint(Mover).Z - Ground) > StepHeight) ||
+				 ((Bary.Y > 0.1f) && (Bary.Y < 0.9f));
+#endif
+		v3 MoverGroundPoint = GetEntityGroundPoint(Mover);
+		real32 Ground = GetStairGround(Region, MoverGroundPoint);
+		Result = (AbsoluteValue(MoverGroundPoint.Z - Ground) > StepHeight);
 	}
 
 	return Result;
@@ -590,7 +589,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 		}
 	}
 
-	real32 Ground = 0.0f; //SimRegion->GroundZBase;
+	real32 Ground = 0.0f;
 
 	// NOTE Handle events based on area overlapping
 	// TODO Handle overlapping more precisely by moving it into the collision loop?
@@ -613,6 +612,8 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 			}
 		}
 	}
+
+	Ground += Entity->P.Z - GetEntityGroundPoint(Entity).Z;
 
 	if((Entity->P.Z <= Ground) ||
 	   (IsSet(Entity, EntityFlag_ZSupported) &&
