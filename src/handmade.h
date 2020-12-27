@@ -21,6 +21,7 @@
 	  - How is this rendered?
 	  - ZFudge!!!!!!
 	- Collision Detection?
+	  - Fix sword collision!
 	  - Clean up perdicate proliferation! Can we make a nice clean
 	  	set of flags/rules so that it's easy to understand how 
 		things work in terms of special handling? This may involve
@@ -47,6 +48,7 @@
 	  - Sound effect triggers
 	  - Ambient sounds
 	  - Music
+
 	- Asset streaming
 
 	- Metagame / save game?
