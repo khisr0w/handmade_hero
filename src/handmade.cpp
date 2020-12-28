@@ -596,6 +596,55 @@ MakeNullCollision(game_state *GameState)
 	return Group;
 }
 
+internal void
+DrawTestGround(game_state *GameState, game_offscreen_buffer *Buffer)
+{
+	uint32_t RandomNumberIndex = 0;
+
+	v2 Center = 0.5f*V2i(Buffer->Width, Buffer->Height);
+	for(uint32_t GrassIndex = 0;
+		GrassIndex < 100;
+		++GrassIndex)
+	{
+		Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+		loaded_bitmap *Stamp;
+		if(RandomNumberTable[RandomNumberIndex++]%2)
+		{
+			Stamp = GameState->Grass + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Grass));
+		}
+		else
+		{
+			Stamp = GameState->Stone + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Stone));
+		}
+
+		real32 Radius = 5.0f;
+		v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
+		v2 Offset = {2.0f*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MAX_RANDOM_NUMBER - 1,
+					 2.0f*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MAX_RANDOM_NUMBER - 1};
+
+		v2 P = Center + GameState->MetersToPixels*Radius*Offset - BitmapCenter;
+		DrawBitmap(Buffer, Stamp, P.X, P.Y);
+	}
+
+	for(uint32_t GrassIndex = 0;
+		GrassIndex < 100;
+		++GrassIndex)
+	{
+		Assert(RandomNumberIndex < ArrayCount(RandomNumberTable));
+
+		loaded_bitmap *Stamp = GameState->Tuft + (RandomNumberTable[RandomNumberIndex++] % ArrayCount(GameState->Tuft));
+
+		real32 Radius = 5.0f;
+		v2 BitmapCenter = 0.5f*V2i(Stamp->Width, Stamp->Height);
+		v2 Offset = {2.0f*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MAX_RANDOM_NUMBER - 1,
+					 2.0f*(real32)RandomNumberTable[RandomNumberIndex++]/(real32)MAX_RANDOM_NUMBER - 1};
+
+		v2 P = Center + GameState->MetersToPixels*Radius*Offset - BitmapCenter;
+		DrawBitmap(Buffer, Stamp, P.X, P.Y);
+	}
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
 	uint32_t TilesPerWidth = 17;
@@ -604,7 +653,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	Assert((&Input->Controllers[0].Back - &Input->Controllers[0].Buttons[0]) ==
 			(ArrayCount(Input->Controllers[0].Buttons) - 1));
 	Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
-
+	
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 	if(!Memory->IsInitialized)
 	{
@@ -642,6 +691,27 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 																	   TilesPerHeight*GameState->World->TileSideInMeters,
 																	   0.9f*GameState->World->TileDepthInMeters);
 	
+
+		GameState->Grass[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/grass00.bmp");
+		GameState->Grass[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/grass01.bmp");
+
+		GameState->Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground00.bmp");
+		GameState->Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground01.bmp");
+		GameState->Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground02.bmp");
+		GameState->Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground03.bmp");
+
+		GameState->Tuft[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
+		GameState->Tuft[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
+		GameState->Tuft[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
 
 		GameState->BackDrop = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
 				"handmade_hero_legacy_art/early_data/test/test_background.bmp");
@@ -944,6 +1014,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #else
 	DrawBitmap(Buffer, &GameState->BackDrop, 0, 0);
 #endif
+
+	DrawTestGround(GameState, Buffer);
+
 	real32 ScreenCenterX = 0.5f * (real32)Buffer->Width;
 	real32 ScreenCenterY = 0.5f * (real32)Buffer->Height;
 

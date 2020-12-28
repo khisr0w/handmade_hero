@@ -6,7 +6,8 @@
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
-
+#define MAX_RANDOM_NUMBER 0x3b91b864
+#define MIN_RANDOM_NUMBER 0x00000005
 global_var uint32_t RandomNumberTable[] = 
 {
 	0x00000005, 0x018bbfc0, 0x244493d0, 0x18c9087c, 0x23388204,

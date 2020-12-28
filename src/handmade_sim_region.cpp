@@ -324,12 +324,6 @@ TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 Pla
 	return Hit;
 }
 
-inline bool32
-TypesMatch(entity_type AType, sim_entity *A,
-		   entity_type BType, sim_entity *B)
-{
-}
-
 internal bool32
 CanCollide(game_state *GameState, sim_entity *A, sim_entity *B)
 {
