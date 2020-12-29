@@ -82,7 +82,6 @@
 #if !defined(HANDMADE_H)
 
 #include "handmade_platform.h"
-#include "handmade_random.h"
 
 #define Minimum(A, B) (((A) < (B)) ? A : B)
 #define Maximum(A, B) (((A) > (B)) ? A : B)
@@ -139,6 +138,7 @@ ZeroSize(memory_index Size, void *Ptr)
 
 #include "handmade_instrinsics.h"
 #include "handmade_math.h"
+#include "handmade_random.h"
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
 #include "handmade_entity.h"
@@ -147,7 +147,8 @@ struct loaded_bitmap
 {
 	int32_t Width;
 	int32_t Height;
-	uint32_t *Pixels;
+	int32_t Pitch;
+	void *Memory;
 };
 
 struct hero_bitmaps
@@ -239,6 +240,8 @@ struct game_state
 	sim_entity_collision_volume_group *FamiliarCollision;
 	sim_entity_collision_volume_group *WallCollision;
 	sim_entity_collision_volume_group *StandardRoomCollision;
+
+	loaded_bitmap GroundBuffer;
 };
 
 struct entity_visible_piece_group

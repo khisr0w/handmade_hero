@@ -124,13 +124,14 @@ typedef struct game_sound_output_buffer
 	int SamplesPerSecond; 
 } game_sound_output_buffer;
 
+#define BITMAP_BYTES_PER_PIXEL 4
 typedef struct game_offscreen_buffer
 {
+	// NOTE Pixels are always 32-bit wide, Memory order BB GG RR XX
 	void *Memory;
 	int Width; 
 	int Height;
 	int Pitch;
-	int BytesPerPixel;
 } game_offscreen_buffer;
 
 typedef struct game_button_state

@@ -1374,7 +1374,6 @@ int CALLBACK WinMain(
 					Buffer.Width  = GlobalBackBuffer.Width; 
 					Buffer.Height = GlobalBackBuffer.Height;
 					Buffer.Pitch  = GlobalBackBuffer.Pitch;
-					Buffer.BytesPerPixel = GlobalBackBuffer.BytesPerPixel;
 
 					if(Win32State.InputRecordingIndex)
 					{
