@@ -137,24 +137,24 @@ DrawBitmap(loaded_bitmap *Buffer, loaded_bitmap *Bitmap,
 			X < MaxX;
 			++X)
 		{
-			real32 SA = (real32)((*Source >> 24) & 0xFF) / 255.0f;
-			SA *= CAlpha;
-			real32 SR = (real32)((*Source >> 16) & 0xFF);
-			real32 SG = (real32)((*Source >> 8) & 0xFF);
-			real32 SB = (real32)((*Source >> 0) & 0xFF);
+			real32 SA = (real32)((*Source >> 24) & 0xFF);
+			real32 RSA = (SA / 255.0f) * CAlpha;
+			real32 SR = CAlpha*(real32)((*Source >> 16) & 0xFF);
+			real32 SG = CAlpha*(real32)((*Source >> 8) & 0xFF);
+			real32 SB = CAlpha*(real32)((*Source >> 0) & 0xFF);
 
 			real32 DA = (real32)((*Dest >> 24) & 0xFF);
 			real32 DR = (real32)((*Dest >> 16) & 0xFF);
 			real32 DG = (real32)((*Dest >> 8) & 0xFF);
 			real32 DB = (real32)((*Dest >> 0) & 0xFF);
+			real32 RDA = (DA / 255.0f);
 
-			// TODO Premultiplied alpha
-
-			// TODO Compute the right alpha here
-			real32 A = Maximum(DA, 255.0f*SA);
-			real32 R = (1.0f - SA)*DR + SA*SR;
-			real32 G = (1.0f - SA)*DG + SA*SG;
-			real32 B = (1.0f - SA)*DB + SA*SB;
+			real32 InvRSA = (1.0f-RSA);
+			// TODO Check this for math errors
+			real32 A = 255.0f*(RSA + RDA - RSA*RDA);
+			real32 R = InvRSA*DR + SR;
+			real32 G = InvRSA*DG + SG;
+			real32 B = InvRSA*DB + SB;
 
 			*Dest = (((uint32_t)(A + 0.5f) << 24) |
 					 ((uint32_t)(R + 0.5f) << 16) |
@@ -232,10 +232,10 @@ DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntire
 		Assert(BlueScan.Found);
 		Assert(AlphaScan.Found);
 
-		int32_t RedShift = 16 - (int32_t)RedScan.Index;
-		int32_t GreenShift = 8 - (int32_t)GreenScan.Index;
-		int32_t BlueShift = 0 - (int32_t)BlueScan.Index;
-		int32_t AlphaShift = 24 - (int32_t)AlphaScan.Index;
+		int32_t RedShiftDown = (int32_t)RedScan.Index;
+		int32_t GreenShiftDown = (int32_t)GreenScan.Index;
+		int32_t BlueShiftDown = (int32_t)BlueScan.Index;
+		int32_t AlphaShiftDown = (int32_t)AlphaScan.Index;
 
 		uint32_t *SourceDest = Pixels;
 		for(int32_t Y = 0;
@@ -247,17 +247,21 @@ DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntire
 				++X)
 			{
 				uint32_t C = *SourceDest;
-#if 0
-				*SourceDest++ = ((((C >> AlphaShift.Index) & 0xFF) << 24) |
-								 (((C >> RedShift.Index) & 0xFF) << 16) |
-								 (((C >> GreenShift.Index) & 0xFF) << 8) |
-								 (((C >> BlueShift.Index) & 0xFF) << 0));
-#else
-				*SourceDest++ = (RotateLeft(C & RedMask, RedShift) |
-								 RotateLeft(C & GreenMask, GreenShift) |
-								 RotateLeft(C & BlueMask, BlueShift) |
-								 RotateLeft(C & AlphaMask, AlphaShift));
-#endif
+
+				real32 R = (real32)((C & RedMask) >> RedShiftDown);
+				real32 G = (real32)((C & GreenMask) >> GreenShiftDown);
+				real32 B = (real32)((C & BlueMask) >> BlueShiftDown);
+				real32 A = (real32)((C & AlphaMask) >> AlphaShiftDown);
+				real32 AN = (A / 255.0f);
+
+				R = R*AN;
+				G = G*AN;
+				B = B*AN;
+
+				*SourceDest++ = (((uint32_t)(A + 0.5f) << 24) |
+								 ((uint32_t)(R + 0.5f) << 16) |
+								 ((uint32_t)(G + 0.5f) << 8)  |
+								 ((uint32_t)(B + 0.5f) << 0));
 			}
 		}
 	}
@@ -607,6 +611,8 @@ MakeNullCollision(game_state *GameState)
 internal void
 DrawTestGround(game_state *GameState, loaded_bitmap *Buffer)
 {
+	DrawRectangle(Buffer, V2(0, 0), V2((real32)Buffer->Width, (real32)Buffer->Height), 0, 0, 0);
+
 	random_series Series = RandomSeed(1234);
 
 	v2 Center = 0.5f*V2i(Buffer->Width, Buffer->Height);
@@ -615,6 +621,7 @@ DrawTestGround(game_state *GameState, loaded_bitmap *Buffer)
 		++GrassIndex)
 	{
 		loaded_bitmap *Stamp;
+
 		if(RandomChoice(&Series, 2))
 		{
 			Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
@@ -717,9 +724,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				"handmade_hero_legacy_art/early_data/test2/ground00.bmp");
 		GameState->Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
 				"handmade_hero_legacy_art/early_data/test2/ground01.bmp");
-		GameState->Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+		GameState->Stone[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
 				"handmade_hero_legacy_art/early_data/test2/ground02.bmp");
-		GameState->Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+		GameState->Stone[4] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
 				"handmade_hero_legacy_art/early_data/test2/ground03.bmp");
 
 		GameState->Tuft[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,

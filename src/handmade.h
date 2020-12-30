@@ -40,6 +40,7 @@
 		in the chunks we want them to be in / etc...
 
 	- Debug code
+  	  - Fonts
   	  - Logging
 	  - Diagramming
 	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
