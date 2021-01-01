@@ -103,6 +103,14 @@ struct memory_arena
 	memory_index Size;
 	uint8_t *Base;
 	memory_index Used;
+	
+	int32_t TempCount;
+};
+
+struct temporary_memory
+{
+	memory_arena *Arena;
+	memory_index Used;
 };
 
 internal void
@@ -111,6 +119,7 @@ InitializeArena(memory_arena *Arena, memory_index Size, void *Base)
 	Arena->Size = Size;
 	Arena->Base = (uint8_t *)Base;
 	Arena->Used = 0;
+	Arena->TempCount = 0;
 }
 
 #define PushStruct(Arena, type) (type *)PushSize_(Arena, sizeof(type))
@@ -123,6 +132,35 @@ PushSize_(memory_arena *Arena, memory_index Size)
 	Arena->Used += Size;
 
 	return Result;
+}
+
+inline temporary_memory
+BeginTemporaryMemory(memory_arena *Arena)
+{
+	temporary_memory Result;
+
+	Result.Arena = Arena;
+	Result.Used = Arena->Used;
+
+	++Arena->TempCount;
+
+	return Result;
+}
+
+inline void
+EndTemporaryMemory(temporary_memory TempMem)
+{
+	memory_arena *Arena = TempMem.Arena;
+	Assert(Arena->Used >= TempMem.Used);
+	Arena->Used = TempMem.Used;
+	Assert(Arena->TempCount > 0);
+	--Arena->TempCount;
+}
+
+inline void
+CheckArena(memory_arena *Arena)
+{
+	Assert(Arena->TempCount == 0);
 }
 
 #define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance));
@@ -201,6 +239,13 @@ AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t Storage
 internal void
 ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
 
+struct ground_buffer
+{
+	// NOTE An Invalid P tells us that this ground_buffer has not been filled.
+	world_position P; // NOTE This is the center of the bitmap
+	void *Memory;
+};
+
 struct game_state
 {
 	memory_arena WorldArena;
@@ -242,8 +287,15 @@ struct game_state
 	sim_entity_collision_volume_group *WallCollision;
 	sim_entity_collision_volume_group *StandardRoomCollision;
 
-	world_position GroundBufferP;
-	loaded_bitmap GroundBuffer;
+};
+
+struct transient_state
+{
+	bool32 IsInitialized;
+	memory_arena TranArena;
+	uint32_t GroundBufferCount;
+	loaded_bitmap GroundBitmapTemplate;
+	ground_buffer *GroundBuffers;
 };
 
 struct entity_visible_piece_group
