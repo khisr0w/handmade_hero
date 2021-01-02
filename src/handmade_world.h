@@ -43,8 +43,8 @@ struct world_chunk
 
 struct world
 {
-	real32 TileSideInMeters;
-	real32 TileDepthInMeters;
+	// real32 TileSideInMeters;
+	// real32 TileDepthInMeters;
 	v3 ChunkDimInMeters;
 
 	world_entity_block *FirstFree;

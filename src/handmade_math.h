@@ -502,6 +502,17 @@ AddRadiusTo(rectangle2 A, v2 Radius)
 	return Result;
 }
 
+inline rectangle3
+Offset(rectangle3 A, v3 Offset)
+{
+	rectangle3 Result;
+
+	Result.Min = A.Min + Offset;
+	Result.Max = A.Max + Offset;
+
+	return Result;
+}
+
 inline v2
 GetBarycentric(rectangle2 A, v2 P)
 {

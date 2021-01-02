@@ -10,7 +10,7 @@
 #define TILE_CHUNK_SAFE_MARGIN (INT32_MAX/64)
 #define TILE_CHUNK_UNINITIALIZED INT32_MAX
 
-#define TILES_PER_CHUNK 16
+#define TILES_PER_CHUNK 8
 
 inline world_position
 NullPosition()
@@ -72,6 +72,7 @@ GetWorldChunk(world *World, int32_t ChunkX, int32_t ChunkY, int32_t ChunkZ,
 	Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
 
 	uint32_t HashValue = 19*ChunkX + 7*ChunkY + 3*ChunkZ;
+
 	uint32_t HashSlot = HashValue & (ArrayCount(World->ChunkHash) - 1);
 	Assert(HashSlot < ArrayCount(World->ChunkHash));
 
@@ -91,6 +92,7 @@ GetWorldChunk(world *World, int32_t ChunkX, int32_t ChunkY, int32_t ChunkZ,
 			Chunk = Chunk->NextInHash;
 			Chunk->ChunkX = TILE_CHUNK_UNINITIALIZED;
 		}
+
 		if(Arena && (Chunk->ChunkX == TILE_CHUNK_UNINITIALIZED))
 		{
 			Chunk->ChunkX = ChunkX;
@@ -108,13 +110,9 @@ GetWorldChunk(world *World, int32_t ChunkX, int32_t ChunkY, int32_t ChunkZ,
 }
 
 internal void
-InitializeWorld(world *World, real32 TileSideInMeters, real32 TileDepthInMeters)
+InitializeWorld(world *World, v3 ChunkDimInMeters)
 {
-	World->TileSideInMeters = TileSideInMeters;
-	World->ChunkDimInMeters = {(real32)TILES_PER_CHUNK*TileSideInMeters,
-							   (real32)TILES_PER_CHUNK*TileSideInMeters,
-							   TileDepthInMeters};
-	World->TileDepthInMeters = (real32)TileDepthInMeters;
+	World->ChunkDimInMeters = ChunkDimInMeters;
 	World->FirstFree = 0;
 
 	for(uint32_t TileChunkIndex = 0;
@@ -150,21 +148,6 @@ MapIntoChunkSpace(world *World, world_position BasePos, v3 Offset)
 	return Result;
 }
 
-inline world_position
-ChunkPositionFromTilePosition(world *World, int32_t AbsTileX, int32_t AbsTileY, int32_t AbsTileZ,
-							  v3 AdditionalOffset = V3(0, 0, 0))
-{
-	world_position BasePos = {};
-
-	v3 TileDim = V3(World->TileSideInMeters, World->TileSideInMeters, World->TileDepthInMeters);
-	v3 Offset = Hadamard(TileDim, V3((real32)AbsTileX, (real32)AbsTileY, (real32)AbsTileZ));
-	world_position Result = MapIntoChunkSpace(World, BasePos, AdditionalOffset + Offset);
-
-	Assert(IsCannonical(World, Result.Offset_));
-
-	return Result;
-}
-
 inline v3
 Subtract(world *World, world_position *A, world_position *B)
 {
@@ -188,6 +171,14 @@ CenteredChunkPoint(uint32_t ChunkX, uint32_t ChunkY, uint32_t ChunkZ)
 
 	return Result;
 }
+
+internal world_position
+CenteredChunkPoint(world_chunk *Chunk)
+{
+	world_position Result = CenteredChunkPoint(Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ);
+
+	return Result;
+ }
 
 inline void
 ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32_t LowEntityIndex,

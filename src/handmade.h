@@ -251,7 +251,7 @@ struct game_state
 	memory_arena WorldArena;
 	world* World;
 
-	real32 MetersToPixels;
+	real32 TypicalFloorHeight;
 
 	// TODO Split-screen?
 	uint32_t CameraFollowingEntityIndex;
@@ -273,6 +273,8 @@ struct game_state
 	loaded_bitmap Tree;
 	loaded_bitmap Sword;
 	loaded_bitmap Stairwell;
+	real32 MetersToPixels;
+	real32 PixelsToMeters;
 
 	// TODO This must be a power of two
 	pairwise_collision_rule *CollisionRuleHash[256];
