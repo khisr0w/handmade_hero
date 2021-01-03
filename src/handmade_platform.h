@@ -50,12 +50,13 @@ extern "C" {
 #endif
 
 //
-//
+// NOTE Types
 //
 
 #include <stdint.h>
 #include <stddef.h>
-
+#include <limits.h>
+#include <float.h>
 
 typedef int32_t bool32;
 typedef char bool8;
@@ -63,6 +64,8 @@ typedef float real32;
 typedef double real64;
 
 typedef size_t memory_index;
+
+#define REAL32MAXIMUM FLT_MAX
 
 #define local_persist static 
 #define global_var static
@@ -178,6 +181,7 @@ typedef struct game_input
 	game_button_state MouseButtons[5];
 	int32_t MouseX, MouseY, MouseZ;
 
+	bool32 ExecutableReloaded;
 	real32 dtForFrame;
 
 	game_controller_input Controllers[5];

@@ -15,7 +15,7 @@
    - Saved Game Location
    - Getting a Handle to our own executable file
    - Asset loading Path
-   - Threading (lauch a thread)
+   - Threading (launch a thread)
    - Raw Input (Support for multiple keyboards)
    - Sleep/timeBeginPeriod
    - ClipCursor() for multi monitor 
@@ -1182,9 +1182,10 @@ int CALLBACK WinMain(
 
 				uint64_t LastCycleCount = __rdtsc();
 				GlobalRunning = 1;
-				while(GlobalRunning) {
-
+				while(GlobalRunning)
+				{
 					NewInput->dtForFrame = TargetSecondsPerFrame;
+					NewInput->ExecutableReloaded = false;
 
 					FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceGameCodeDLLFullPath);
 					if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
@@ -1193,6 +1194,7 @@ int CALLBACK WinMain(
 						Game = Win32LoadGameCode(SourceGameCodeDLLFullPath, 
 												 TempGameCodeDLLFullPath,
 												 GameCodeLockFullPath);
+						NewInput->ExecutableReloaded = true;
 					}
 
 					// TODO Zeroing Macros
