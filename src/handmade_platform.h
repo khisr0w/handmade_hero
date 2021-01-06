@@ -73,6 +73,8 @@ typedef size_t memory_index;
 #define PI32 3.14159265359f
 
 #define InvalidCodePath Assert(!"InvalidCodePath")
+#define InvalidDefaultCase default: {InvalidCodePath;} break
+
 #define Kilobytes(Value) ((Value) * 1024LL)
 #define Megabytes(Value) (Kilobytes(Value) * 1024LL)
 #define Gigabytes(Value) (Megabytes(Value) * 1024LL)
