@@ -1256,13 +1256,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	}
 
 	GameState->Time += Input->dtForFrame;
-	real32 Angle = GameState->Time;
+	real32 Angle = 0.2f*GameState->Time;
+	real32 Disp = 100.0f*Cos(5.0f*Angle);
 
 	v2 Origin = ScreenCenter; // V2(0, 0);
-	v2 XAxis = (50.0f + 50.0f*Cos(Angle))*V2(Cos(Angle), Sin(Angle));
+#if 1 
+	v2 XAxis = 100.0f*V2(Cos(Angle), Sin(Angle));
 	v2 YAxis = Perp(XAxis);
+#else
+	v2 XAxis = {100, 0};
+	v2 YAxis = {0, 100};
+#endif
 	uint32_t PIndex = 0;
-	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin, XAxis, YAxis, V4(1, 1, 0, 1));
+	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin - 0.5f*XAxis - 0.5f*YAxis,
+														 XAxis, YAxis, V4(1, 1, 0, 1),
+														 &GameState->Tree);
 
 	for(real32 Y = 0.0f;
 		Y < 1.0f;
