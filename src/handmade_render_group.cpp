@@ -8,6 +8,37 @@
 
 #if !defined(HANDMADE_RENDER_GROUP_CPP)
 
+inline v4
+SRGB255ToLinear1(v4 C)
+{
+	v4 Result;
+
+	real32 Inv255 = 1.0f / 255.0f;
+
+	Result.r = Square(Inv255*C.r);
+	Result.g = Square(Inv255*C.g);
+	Result.b = Square(Inv255*C.b);
+	Result.a = Inv255*C.a;
+
+	return Result;
+}
+
+inline v4
+Linear1ToSRGB255(v4 C)
+{
+	v4 Result;
+
+	real32 One255 = 255.0f;
+
+	Result.r = One255*SquareRoot(C.r);
+	Result.g = One255*SquareRoot(C.g);
+	Result.b = One255*SquareRoot(C.b);
+	Result.a = One255*C.a;
+
+	return Result;
+}
+
+
 internal void
 DrawRectangle(loaded_bitmap *Buffer, v2 vMin, v2 vMax, real32 R, real32 G, real32 B, real32 A = 1.0f)
 {
@@ -127,12 +158,13 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 			   (Edge2 < 0) &&
 			   (Edge3 < 0))
 			{
+				// NOTE Bilinear Blend/Filtering
 				real32 U = InvXAxisLengthSq*Inner(d, XAxis);
 				real32 V = InvYAxisLengthSq*Inner(d, YAxis);
-
+#if 0
 				Assert((U >= 0.0f) && (U <= 1.0f));
 				Assert((V >= 0.0f) && (V <= 1.0f));
-
+#endif
 				real32 tX = ((U*(real32)(Texture->Width - 2)));
 				real32 tY = ((V*(real32)(Texture->Height - 2)));
 
@@ -172,6 +204,12 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 							 (real32)((TexelPtrD >> 0) & 0xFF),
 							 (real32)((TexelPtrD >> 24) & 0xFF)};
 
+				// NOTE sRGB to "linear" brightness space conversion (remove gamma curve)
+				TexelA = SRGB255ToLinear1(TexelA);
+				TexelB = SRGB255ToLinear1(TexelB);
+				TexelC = SRGB255ToLinear1(TexelC);
+				TexelD = SRGB255ToLinear1(TexelD);
+
 				v4 Texel = Lerp(Lerp(TexelA, fX, TexelB),
 								fY,
 								Lerp(TexelC, fX, TexelD));
@@ -181,25 +219,32 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 				real32 SG = Texel.g;
 				real32 SB = Texel.b;
 
-				real32 RSA = (SA / 255.0f) * Color.a;
+				real32 RSA = SA  * Color.a;
 
-				real32 DA = (real32)((*Pixel >> 24) & 0xFF);
-				real32 DR = (real32)((*Pixel >> 16) & 0xFF);
-				real32 DG = (real32)((*Pixel >> 8) & 0xFF);
-				real32 DB = (real32)((*Pixel >> 0) & 0xFF);
-				real32 RDA = (DA / 255.0f);
+				v4 Dest = {(real32)((*Pixel >> 16) & 0xFF),
+						   (real32)((*Pixel >> 8) & 0xFF),
+						   (real32)((*Pixel >> 0) & 0xFF),
+						   (real32)((*Pixel >> 24) & 0xFF)};
+
+				// NOTE sRGB to "linear" brightness space conversion (remove gamma curve)
+				Dest = SRGB255ToLinear1(Dest);
+
+				real32 RDA = Dest.a;
 
 				real32 InvRSA = (1.0f-RSA);
-				// TODO Check this for math errors
-				real32 A = 255.0f*(RSA + RDA - RSA*RDA);
-				real32 R = InvRSA*DR + SR;
-				real32 G = InvRSA*DG + SG;
-				real32 B = InvRSA*DB + SB;
 
-				*Pixel = (((uint32_t)(A + 0.5f) << 24) |
-						  ((uint32_t)(R + 0.5f) << 16) |
-						  ((uint32_t)(G + 0.5f) << 8)  |
-						  ((uint32_t)(B + 0.5f) << 0));
+				v4 Blended = {InvRSA*Dest.r + Color.a*Color.r*Texel.r,
+							  InvRSA*Dest.g + Color.a*Color.g*Texel.g,
+							  InvRSA*Dest.b + Color.a*Color.b*Texel.b,
+							  (RSA + RDA - RSA*RDA)};
+
+				// NOTE "linear" brightness to sRGB conversion (add the gamma curve)
+				v4 Blended255 = Linear1ToSRGB255(Blended);
+
+				*Pixel = (((uint32_t)(Blended255.a + 0.5f) << 24) |
+						  ((uint32_t)(Blended255.r + 0.5f) << 16) |
+						  ((uint32_t)(Blended255.g + 0.5f) << 8)  |
+						  ((uint32_t)(Blended255.b + 0.5f) << 0));
 			}
 			++Pixel;
 		}	
