@@ -47,7 +47,15 @@ union v4
 	};
 	struct
 	{
-		real32 r, g, b, a;
+		union
+		{
+			struct
+			{
+				real32 r, g, b;
+			};
+			v3 rgb;
+		};
+		real32 a;
 	};
 	real32 E[4];
 };
