@@ -984,7 +984,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	DrawBuffer->Pitch = Buffer->Pitch;
 	DrawBuffer->Memory = Buffer->Memory;
 
-	Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 0.0f));
+	Clear(RenderGroup, V4(0.5f, 0.5f, 0.5f, 0.0f));
 
 	v2 ScreenCenter = {0.5f*(real32)DrawBuffer->Width,
 					   0.5f*(real32)DrawBuffer->Height};
@@ -1255,10 +1255,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	}
 
 	GameState->Time += Input->dtForFrame;
-	real32 Angle = 0.2f*GameState->Time;
-	real32 Disp = 100.0f*Cos(5.0f*Angle);
 
 	v2 Origin = ScreenCenter; // V2(0, 0);
+	real32 Angle = 0;
+	real32 Disp = 100.0f*Cos(5.0f*Angle);
 #if 1 
 	v2 XAxis = 100.0f*V2(Cos(Angle), Sin(Angle));
 	v2 YAxis = Perp(XAxis);
@@ -1268,10 +1268,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
 	uint32_t PIndex = 0;
 	real32 CAngle = 5.0f*Angle;
+#if 0
+	real32 Angle = 0.2f*GameState->Time;
 	v4 Color = V4(0.5f+0.5f*Sin(CAngle),
 				  0.5f+0.5f*Sin(2.9f*CAngle),
 				  0.5f+0.5f*Cos(9.9f*CAngle),
 				  1.0f);
+#else
+	v4 Color = V4(1.0f, 1.0f, 1.0f, 1.0f);
+#endif
 	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin - 0.5f*XAxis - 0.5f*YAxis,
 														 XAxis, YAxis, Color,
 														 &GameState->Tree);
