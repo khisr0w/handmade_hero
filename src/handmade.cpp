@@ -569,6 +569,45 @@ MakeEmptyBitmap(memory_arena *TransientArena, uint32_t Width, uint32_t Height, b
 	return Result;
 }
 
+internal void
+MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
+{
+	real32 InvWidth = 1.0f / (1.0f - Bitmap->Width);
+	real32 InvHeight = 1.0f / (1.0f - Bitmap->Height);
+
+	uint8_t *Row = (uint8_t *)Bitmap->Memory;
+	for(int32_t Y = 0;
+		Y < Bitmap->Height;
+		++Y)
+	{
+		uint32_t *Pixel = (uint32_t *)Row;
+		for(int32_t X = 0;
+			X < Bitmap->Width;
+			++X)
+		{
+			v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
+
+			// TODO (Khisrow): Actually generate sphere here!
+			v3 Normal = {2.0f*BitmapUV.x - 1.0f, 2.0f*BitmapUV.y - 1.0f, 0.0f};
+			Normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(Normal.x) + Square(Normal.y)));
+
+			Normal = Normalize(Normal);
+
+			v4 Color = {255.0f*(0.5f*(Normal.x + 1.0f)),
+						255.0f*(0.5f*(Normal.y + 1.0f)),
+						127.0f*Normal.z,
+						255.0f*Roughness};
+
+			*Pixel = (((uint32_t)(Color.a + 0.5f) << 24) |
+					  ((uint32_t)(Color.r + 0.5f) << 16) |
+					  ((uint32_t)(Color.g + 0.5f) << 8)  |
+					  ((uint32_t)(Color.b + 0.5f) << 0));
+		}
+
+		Row += Bitmap->Pitch;
+	}
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
 	Assert((&Input->Controllers[0].Back - &Input->Controllers[0].Buttons[0]) ==
@@ -1279,20 +1318,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
 	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin - 0.5f*XAxis - 0.5f*YAxis,
 														 XAxis, YAxis, Color,
-														 &GameState->Tree);
-
-	for(real32 Y = 0.0f;
-		Y < 1.0f;
-		Y += 0.25f)
-	{
-		for(real32 X = 0.0f;
-			X < 1.0f;
-			X += 0.25f)
-		{
-			C->Points[PIndex++] = V2(X, Y);
-		}
-	}
-
+														 &GameState->Tree,
+														 0, 0, 0, 0);
 	RenderGroupToOutput(RenderGroup, DrawBuffer);
 
 	EndSim(SimRegion, GameState);
