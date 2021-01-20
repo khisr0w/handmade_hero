@@ -38,6 +38,22 @@ Linear1ToSRGB255(v4 C)
 	return Result;
 }
 
+inline v4
+UnscaleAndBiasNormal(v4 Normal)
+{
+	v4 Result;
+
+	real32 Inv255 = 1.0f / 255.0f;
+
+	Result.x = -1.0f + 2.0f*(Inv255*Normal.x);
+	Result.y = -1.0f + 2.0f*(Inv255*Normal.y);
+	Result.z = -1.0f + 2.0f*(Inv255*Normal.z);
+
+	Result.w = Inv255*Normal.w;
+
+	return Result;
+}
+
 internal void
 DrawRectangle(loaded_bitmap *Buffer, v2 vMin, v2 vMax, real32 R, real32 G, real32 B, real32 A = 1.0f)
 {
@@ -101,10 +117,67 @@ Unpack4x8(uint32_t Packed)
 	return Result;
 }
 
+struct bilinear_sample
+{
+	uint32_t A, B, C, D;
+};
+inline bilinear_sample
+BilinearSample(loaded_bitmap *Texture, int32_t X, int32_t Y)
+{
+	bilinear_sample Result;
+
+	uint8_t *TexelPtr = ((uint8_t *)Texture->Memory) + Y*Texture->Pitch + X*sizeof(uint32_t);
+	Result.A = *(uint32_t *)(TexelPtr);
+	Result.B = *(uint32_t *)(TexelPtr + sizeof(uint32_t));
+	Result.C = *(uint32_t *)(TexelPtr + Texture->Pitch);
+	Result.D = *(uint32_t *)(TexelPtr + Texture->Pitch + sizeof(uint32_t));
+
+	return Result;
+}
+
+inline v4
+SRGBBilinearBlend(bilinear_sample BilinearSample, real32 fX, real32 fY)
+{
+	v4 TexelA = Unpack4x8(BilinearSample.A);
+	v4 TexelB = Unpack4x8(BilinearSample.B);
+	v4 TexelC = Unpack4x8(BilinearSample.C);
+	v4 TexelD = Unpack4x8(BilinearSample.D);
+
+	// NOTE sRGB to "linear" brightness space conversion (remove gamma curve)
+	TexelA = SRGB255ToLinear1(TexelA);
+	TexelB = SRGB255ToLinear1(TexelB);
+	TexelC = SRGB255ToLinear1(TexelC);
+	TexelD = SRGB255ToLinear1(TexelD);
+
+	v4 Result = Lerp(Lerp(TexelA, fX, TexelB),
+					 fY,
+					 Lerp(TexelC, fX, TexelD));
+
+	return Result;
+}
+
 inline v3
 SampleEnvironmentMap(v2 ScreenSpaceUV, v3 Normal, real32 Roughness, environment_map *Map)
 {
-	v3 Result = Normal;
+	uint32_t LODIndex = (uint32_t)(Roughness*(real32)(ArrayCount(Map->LOD) - 1) + 0.5f);
+	Assert(LODIndex < ArrayCount(Map->LOD));
+
+	loaded_bitmap *LOD = Map->LOD[LODIndex];
+
+	real32 tX = 0.0f;
+	real32 tY = 0.0f;
+
+	int32_t iX = (int32_t)tX;
+	int32_t iY = (int32_t)tY;
+
+	real32 fX = tX - (real32)iX;
+	real32 fY = tY - (real32)iY;
+
+	Assert((iX >= 0) && (iX < LOD->Width));
+	Assert((iY >= 0) && (iY < LOD->Height));
+
+	bilinear_sample Sample = BilinearSample(LOD, iX, iY);
+	v3 Result = SRGBBilinearBlend(Sample, fX, fY).xyz;
 
 	return Normal;
 }
@@ -207,69 +280,48 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 				Assert((iX >= 0) && (iX < Texture->Width));
 				Assert((iY >= 0) && (iY < Texture->Height));
 
-				uint8_t *TexelPtr = ((uint8_t *)Texture->Memory) + iY*Texture->Pitch + iX*sizeof(uint32_t);
-				uint32_t TexelPtrA = *(uint32_t *)(TexelPtr);
-				uint32_t TexelPtrB = *(uint32_t *)(TexelPtr + sizeof(uint32_t));
-				uint32_t TexelPtrC = *(uint32_t *)(TexelPtr + Texture->Pitch);
-				uint32_t TexelPtrD = *(uint32_t *)(TexelPtr + Texture->Pitch + sizeof(uint32_t));
-
-				v4 TexelA = Unpack4x8(TexelPtrA);
-				v4 TexelB = Unpack4x8(TexelPtrB);
-				v4 TexelC = Unpack4x8(TexelPtrC);
-				v4 TexelD = Unpack4x8(TexelPtrD);
-
-				// NOTE sRGB to "linear" brightness space conversion (remove gamma curve)
-				TexelA = SRGB255ToLinear1(TexelA);
-				TexelB = SRGB255ToLinear1(TexelB);
-				TexelC = SRGB255ToLinear1(TexelC);
-				TexelD = SRGB255ToLinear1(TexelD);
-
-				v4 Texel = Lerp(Lerp(TexelA, fX, TexelB),
-								fY,
-								Lerp(TexelC, fX, TexelD));
-
+				bilinear_sample TexelSample = BilinearSample(Texture, iX, iY);
+				v4 Texel = SRGBBilinearBlend(TexelSample, fX, fY);
 				if(NormalMap)
 				{
-					uint8_t *NormalPtr = ((uint8_t *)Texture->Memory) + iY*Texture->Pitch + iX*sizeof(uint32_t);
-					uint32_t NormalPtrA = *(uint32_t *)(NormalPtr);
-					uint32_t NormalPtrB = *(uint32_t *)(NormalPtr + sizeof(uint32_t));
-					uint32_t NormalPtrC = *(uint32_t *)(NormalPtr + Texture->Pitch);
-					uint32_t NormalPtrD = *(uint32_t *)(NormalPtr + Texture->Pitch + sizeof(uint32_t));
+					bilinear_sample NormalSample = BilinearSample(NormalMap, iX, iY);
+					v4 NormalA = Unpack4x8(NormalSample.A);
+					v4 NormalB = Unpack4x8(NormalSample.B);
+					v4 NormalC = Unpack4x8(NormalSample.C);
+					v4 NormalD = Unpack4x8(NormalSample.D);
 
-					v4 NormalA = Unpack4x8(NormalPtrA);
-					v4 NormalB = Unpack4x8(NormalPtrB);
-					v4 NormalC = Unpack4x8(NormalPtrC);
-					v4 NormalD = Unpack4x8(NormalPtrD);
+					v4 Normal = SRGBBilinearBlend(NormalSample, fX, fY);
 
-					v4 Normal = Lerp(Lerp(NormalA, fX, NormalB),
-									 fY,
-									 Lerp(NormalC, fX, NormalD));
+					Normal = UnscaleAndBiasNormal(Normal);
 
 					environment_map *FarMap = 0;
-					real32 tEnvMap = Normal.z;
+					real32 tEnvMap = Normal.y;
 					real32 tFarMap = 0.0f;
-					if(tEnvMap < 0.25f)
+					if(tEnvMap < -0.5f)
 					{
 						FarMap = Bottom;
-						tFarMap = 1.0f - (tEnvMap / 0.25f);
+						tFarMap = 2.0f*(tEnvMap + 1.0f);
 					}
-					else if(tEnvMap > 0.75f)
+					else if(tEnvMap > 0.5f)
 					{
 						FarMap = Top;
-						tFarMap = (1.0f - tEnvMap) / 0.25f;
+						tFarMap = 2.0f*(tEnvMap - 0.5f);
 					}
 
-					v3 LightColor = SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
-					if(tFarMap)
+					v3 LightColor = {0, 0, 0}; // SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
+					if(FarMap)
 					{
-						v3 FarMapColor = SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, Middle);
+						v3 FarMapColor = SampleEnvironmentMap(ScreenSpaceUV, Normal.xyz, Normal.w, FarMap);
 						LightColor = Lerp(LightColor, tFarMap, FarMapColor);
 					}
 
-					Texel.rgb = Hadamard(Texel.rgb, LightColor);
+					Texel.rgb = Texel.rgb + Texel.a*LightColor;
 				}
 
 				Texel = Hadamard(Texel, Color);
+				Texel.r = Clamp01(Texel.r);
+				Texel.g = Clamp01(Texel.g);
+				Texel.b = Clamp01(Texel.b);
 
 				v4 Dest = {(real32)((*Pixel >> 16) & 0xFF),
 						   (real32)((*Pixel >> 8) & 0xFF),
@@ -547,9 +599,9 @@ RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget)
 									Entry->Middle,
 									Entry->Bottom);
 
+				v4 Color = {1, 1, 0, 1};
 				v2 Dim = {2, 2};
 				v2 P = Entry->Origin;
-				v4 Color = {1, 0, 0, 1};
 				DrawRectangle(OutputTarget, P - Dim, P + Dim, Color.r, Color.g, Color.b);
 
 				P = Entry->Origin + Entry->XAxis;

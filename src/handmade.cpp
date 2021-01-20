@@ -572,8 +572,8 @@ MakeEmptyBitmap(memory_arena *TransientArena, uint32_t Width, uint32_t Height, b
 internal void
 MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
 {
-	real32 InvWidth = 1.0f / (1.0f - Bitmap->Width);
-	real32 InvHeight = 1.0f / (1.0f - Bitmap->Height);
+	real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
+	real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
 
 	uint8_t *Row = (uint8_t *)Bitmap->Memory;
 	for(int32_t Y = 0;
@@ -587,21 +587,27 @@ MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
 		{
 			v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
 
-			// TODO (Khisrow): Actually generate sphere here!
-			v3 Normal = {2.0f*BitmapUV.x - 1.0f, 2.0f*BitmapUV.y - 1.0f, 0.0f};
-			Normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(Normal.x) + Square(Normal.y)));
+			real32 Nx = 2.0f*BitmapUV.x - 1.0f;
+			real32 Ny = 2.0f*BitmapUV.y - 1.0f;
 
-			Normal = Normalize(Normal);
+			real32 RootTerm = 1.0f - Square(Nx) - Square(Ny);
+			v3 Normal = {0, 0, 1};
+			real32 Nz = 0.0f;
+			if(RootTerm >= 0.0f) 
+			{
+				Nz = SquareRoot(RootTerm);
+				Normal = {Nx, Ny, Nz};
+			}
 
 			v4 Color = {255.0f*(0.5f*(Normal.x + 1.0f)),
 						255.0f*(0.5f*(Normal.y + 1.0f)),
-						127.0f*Normal.z,
+						255.0f*(0.5f*(Normal.z + 1.0f)),
 						255.0f*Roughness};
 
-			*Pixel = (((uint32_t)(Color.a + 0.5f) << 24) |
-					  ((uint32_t)(Color.r + 0.5f) << 16) |
-					  ((uint32_t)(Color.g + 0.5f) << 8)  |
-					  ((uint32_t)(Color.b + 0.5f) << 0));
+			*Pixel++ = (((uint32_t)(Color.a + 0.5f) << 24) |
+						((uint32_t)(Color.r + 0.5f) << 16) |
+						((uint32_t)(Color.g + 0.5f) << 8)  |
+						((uint32_t)(Color.b + 0.5f) << 0));
 		}
 
 		Row += Bitmap->Pitch;
@@ -918,6 +924,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			GroundBuffer->Bitmap = MakeEmptyBitmap(&TranState->TranArena, GroundBufferWidth, GroundBufferHeight, false);
 			GroundBuffer->P = NullPosition();
 		}
+
+		GameState->TreeNormal = MakeEmptyBitmap(&TranState->TranArena, GameState->Tree.Width, GameState->Tree.Height, false);
+		MakeSphereNormalMap(&GameState->TreeNormal, 1.0f);
 
 		TranState->IsInitialized = true;
 	}
@@ -1319,7 +1328,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin - 0.5f*XAxis - 0.5f*YAxis,
 														 XAxis, YAxis, Color,
 														 &GameState->Tree,
-														 0, 0, 0, 0);
+														 &GameState->TreeNormal, 0, 0, 0);
 	RenderGroupToOutput(RenderGroup, DrawBuffer);
 
 	EndSim(SimRegion, GameState);
