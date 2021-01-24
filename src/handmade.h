@@ -9,6 +9,13 @@
 /*
 	TODO:
 
+	- Rendering
+	- Straighten out all coordinate systems
+	  - Screen
+	  - World
+	  - Texture
+	- Optimization
+
 	ARCHITECTURE EXPLORATION
 	- Z!
 	  - Need to make a solid concept of ground levels to the camera
@@ -74,7 +81,6 @@
 	  - Particle systems
 
 	PRODUCTION
-	- Rendering
 	-> GAME
 	  - Entity system
 	  - World generation
@@ -182,14 +188,7 @@ ZeroSize(memory_index Size, void *Ptr)
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
 #include "handmade_entity.h"
-
-struct loaded_bitmap
-{
-	int32_t Width;
-	int32_t Height;
-	int32_t Pitch;
-	void *Memory;
-};
+#include "handmade_render_group.h"
 
 struct hero_bitmaps
 {
@@ -261,7 +260,6 @@ struct game_state
 	hero_bitmaps HeroBitmaps[4];
 
 	loaded_bitmap Tree;
-	loaded_bitmap TreeNormal;
 	loaded_bitmap Sword;
 	loaded_bitmap Stairwell;
 	real32 MetersToPixels;
@@ -281,6 +279,9 @@ struct game_state
 	sim_entity_collision_volume_group *StandardRoomCollision;
 
 	real32 Time;
+
+	loaded_bitmap TestDiffuse;
+	loaded_bitmap TestNormal;
 };
 
 struct transient_state
@@ -289,6 +290,10 @@ struct transient_state
 	memory_arena TranArena;
 	uint32_t GroundBufferCount;
 	ground_buffer *GroundBuffers;
+
+	uint32_t EnvMapWidth;
+	uint32_t EnvMapHeight;
+	environment_map EnvMaps[3]; // NOTE (Khisrow): 0 is bottom, 1 is middle, 2 is top
 };
 
 inline low_entity *
