@@ -569,7 +569,65 @@ MakeEmptyBitmap(memory_arena *TransientArena, uint32_t Width, uint32_t Height, b
 }
 
 internal void
-MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
+MakePyramidNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
+{
+	real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
+	real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
+
+	uint8_t *Row = (uint8_t *)Bitmap->Memory;
+	for(int32_t Y = 0;
+		Y < Bitmap->Height;
+		++Y)
+	{
+		uint32_t *Pixel = (uint32_t *)Row;
+		for(int32_t X = 0;
+			X < Bitmap->Width;
+			++X)
+		{
+			v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
+			real32 Seven = 0.707107f;
+			v3 Normal = {0, 0, Seven};
+			int32_t InvX = (Bitmap->Width - 1) - X;
+			if(X < Y)
+			{
+				if(InvX < Y)
+				{
+					Normal.x = -Seven;
+				}
+				else
+				{
+					Normal.y = Seven;
+				}
+			}
+			else
+			{
+				if(InvX < Y)
+				{
+					Normal.y = -Seven;
+				}
+				else
+				{
+					Normal.x = Seven;
+				}
+			}
+
+			v4 Color = {255.0f*(0.5f*(Normal.x + 1.0f)),
+						255.0f*(0.5f*(Normal.y + 1.0f)),
+						255.0f*(0.5f*(Normal.z + 1.0f)),
+						255.0f*Roughness};
+
+			*Pixel++ = (((uint32_t)(Color.a + 0.5f) << 24) |
+						((uint32_t)(Color.r + 0.5f) << 16) |
+						((uint32_t)(Color.g + 0.5f) << 8)  |
+						((uint32_t)(Color.b + 0.5f) << 0));
+		}
+
+		Row += Bitmap->Pitch;
+	}
+}
+
+internal void
+MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness, real32 Cx = 1.0f, real32 Cy = 1.0f)
 {
 	real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
 	real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
@@ -586,11 +644,12 @@ MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
 		{
 			v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
 
-			real32 Nx = 2.0f*BitmapUV.x - 1.0f;
-			real32 Ny = 2.0f*BitmapUV.y - 1.0f;
+			real32 Nx = Cx*(2.0f*BitmapUV.x - 1.0f);
+			real32 Ny = Cy*(2.0f*BitmapUV.y - 1.0f);
 
 			real32 RootTerm = 1.0f - Square(Nx) - Square(Ny);
-			v3 Normal = {0, 0, 1};
+			v3 Normal = {0, 0.707107, 0.707107};
+
 			real32 Nz = 0.0f;
 			if(RootTerm >= 0.0f) 
 			{
@@ -927,7 +986,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		GameState->TestDiffuse = MakeEmptyBitmap(&TranState->TranArena, 256, 256, false);
 		DrawRectangle(&GameState->TestDiffuse, V2(0, 0), V2i(GameState->TestDiffuse.Width, GameState->TestDiffuse.Height), V4(0.5f, 0.5f, 0.5f, 0.5f));
 		GameState->TestNormal = MakeEmptyBitmap(&TranState->TranArena, GameState->TestDiffuse.Width, GameState->TestDiffuse.Height, false);
-		MakeSphereNormalMap(&GameState->TestNormal, 0.0f);
+		MakeSphereNormalMap(&GameState->TestNormal, 0.0f, 0.0f, 1.0f);
+		// MakePyramidNormalMap(&GameState->TestNormal, 0.0f);
 
 		TranState->EnvMapWidth = 512;
 		TranState->EnvMapHeight = 256;
@@ -1324,7 +1384,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	GameState->Time += Input->dtForFrame;
 	real32 Angle = 0;
-	real32 Disp = 100.0f*Cos(5.0f*Angle);
+	real32 Disp = 100.0f*Cos(1.0f*GameState->Time);
 
 	v3 MapColor[] =
 	{
@@ -1369,6 +1429,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	v2 Origin = ScreenCenter; // V2(0, 0);
 #if 1 
+	Angle = 0.2f*GameState->Time;
 	v2 XAxis = 100.0f*V2(Cos(Angle), Sin(Angle));
 	v2 YAxis = Perp(XAxis);
 #else
@@ -1378,7 +1439,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	uint32_t PIndex = 0;
 	real32 CAngle = 5.0f*Angle;
 #if 0
-	real32 Angle = 0.2f*GameState->Time;
 	v4 Color = V4(0.5f+0.5f*Sin(CAngle),
 				  0.5f+0.5f*Sin(2.9f*CAngle),
 				  0.5f+0.5f*Cos(9.9f*CAngle),
@@ -1386,7 +1446,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #else
 	v4 Color = V4(1.0f, 1.0f, 1.0f, 1.0f);
 #endif
-	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, Origin - 0.5f*XAxis - 0.5f*YAxis,
+	render_entry_coordinate_system *C = CoordinateSystem(RenderGroup, V2(Disp, 0) + Origin - 0.5f*XAxis - 0.5f*YAxis,
 														 XAxis, YAxis, Color,
 														 &GameState->TestDiffuse,
 														 &GameState->TestNormal,
