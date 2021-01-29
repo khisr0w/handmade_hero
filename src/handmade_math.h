@@ -66,6 +66,27 @@ union v4
 		};
 		real32 a;
 	};
+
+	struct
+	{
+		v2 xy;
+		real32 Ingored0_;
+		real32 Ingored1_;
+	};
+
+	struct
+	{
+		real32 Ingored2_;
+		v2 yz;
+		real32 Ingored3_;
+	};
+	struct
+	{
+		real32 Ingored4_;
+		real32 Ingored5_;
+		v2 zw;
+	};
+
 	real32 E[4];
 };
 

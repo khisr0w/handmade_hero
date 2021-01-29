@@ -162,25 +162,43 @@ SRGBBilinearBlend(bilinear_sample BilinearSample, real32 fX, real32 fY)
 }
 
 inline v3
-SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map *Map)
+SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map *Map,
+					 real32 DistanceFromMapinZ)
 {
+	/* NOTE(Khisrow):
+
+	   ScreenSpaceUV tells us where the ray is being case _from_ in 
+	   normalized screen coordinates.
+
+	   SampleDirection tells us what direction the cast is going - it
+	   does not have to be normalized.
+
+	   Roughness says which LODs of Map we sample from.
+
+	   DistanceFromMapInZ says how far the map is from the sample point in Z,
+	   given in meters
+	*/
+
+	// NOTE(Khisrow): Pick which LODs we have to sample from
 	uint32_t LODIndex = (uint32_t)(Roughness*(real32)(ArrayCount(Map->LOD) - 1) + 0.5f);
 	Assert(LODIndex < ArrayCount(Map->LOD));
 
 	loaded_bitmap *LOD = Map->LOD + LODIndex;
 
-	Assert(SampleDirection.y > 0.0f);
-	real32 DistanceFromMapinZ = 1.0f;
-	real32 UVsPerMeter = 0.01f;
+	// NOTE(Khisrow): Compute the distance to the map and the scaling
+	// factor for the meters-to-UVs
+	real32 UVsPerMeter = 0.01f; // TODO(Khisrow): Parameterize this!
 	real32 C = (UVsPerMeter*DistanceFromMapinZ) / SampleDirection.y;
-	// TODO (Khisrow): Make sure we know what direction Z should go in Y
 	v2 Offset = C * V2(SampleDirection.x, SampleDirection.z);
 
+	// NOTE(Khisrow): Find the intersection point
 	v2 UV = ScreenSpaceUV + Offset;
 
+	// NOTE(Khisrow): Clamp to the valid range
 	UV.x = Clamp01(UV.x);
 	UV.y = Clamp01(UV.y);
 
+	// NOTE(Khisrow): Bilinear Sample
 	real32 tX = ((UV.x*(real32)(LOD->Width - 2)));
 	real32 tY = ((UV.y*(real32)(LOD->Height - 2)));
 
@@ -193,12 +211,16 @@ SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, env
 	Assert((X >= 0) && (X < LOD->Width));
 	Assert((Y >= 0) && (Y < LOD->Height));
 
+	uint8_t *TexelPtr = ((uint8_t *)LOD->Memory + Y*LOD->Pitch + X*sizeof(uint32_t));
+	*(uint32_t *)TexelPtr = 0xFFFFFFFF;
+
 	bilinear_sample Sample = BilinearSample(LOD, X, Y);
 	v3 Result = SRGBBilinearBlend(Sample, fX, fY).xyz;
 
 	return Result;
 }
 
+// TODO(Khisrow): LEARN THIS!!!!
 internal void
 DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Color,
 					loaded_bitmap *Texture, loaded_bitmap *NormalMap,
@@ -207,12 +229,19 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 	// NOTE Premultiply color up front
 	Color.rgb *= Color.a;
 
+	real32 XAxisLength = Length(XAxis);
+	real32 YAxisLength = Length(YAxis);
+
+	v2 NxAxis = (YAxisLength / XAxisLength) * XAxis;
+	v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
+	real32 NzScale = 0.5f*(YAxisLength + XAxisLength);
+
 	real32 InvXAxisLengthSq = 1.0f / LengthSq(XAxis);
 	real32 InvYAxisLengthSq = 1.0f / LengthSq(YAxis);
 
 	uint32_t Color32 = ((RoundReal32ToUInt32(Color.a * 255.0f) << 24) |
 						(RoundReal32ToUInt32(Color.r * 255.0f) << 16) |
-						(RoundReal32ToUInt32(Color.g * 255.0f) << 8) |
+						(RoundReal32ToUInt32(Color.g * 255.0f) << 8)  |
 						(RoundReal32ToUInt32(Color.b * 255.0f) << 0));
 
 	int32_t WidthMax = (Buffer->Width - 1);
@@ -314,23 +343,36 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 
 					Normal = UnscaleAndBiasNormal(Normal);
 
+					// NOTE(Khisrow): Take into the account the non-uniform scaling and rotations
+					Normal.xy = Normal.x * NxAxis + Normal.y * NyAxis;
+
+					// NOTE(Khisrow): NzScale could be a parameter if we want people to
+					// have control over the amount of scaling in the Z direction that
+					// the normals appear to have.
+					Normal.z *= NzScale;
 					Normal.xyz = Normalize(Normal.xyz);
 
-					// NOTE (Khisrow): The eye vector is always assumed to be [0, 0, 1]
-					// NOTE (Khisrow): Dot Product Ex*Nx + Ey*Ny + Ez*Nz and so Dot Product = Nz
+					// NOTE(Khisrow): The eye vector is always assumed to be [0, 0, 1]
+					// NOTE(Khisrow): Dot Product Ex*Nx + Ey*Ny + Ez*Nz and so Dot Product = Nz
 					//                             ^->0    ^->0    ^->1
-					// NOTE (Khisrow): This is a simplified version of the reflection -e + 2e^T N N
+					// NOTE(Khisrow): This is a simplified version of the reflection -e + 2e^T N N
 					v3 BounceDirection = 2.0f*Normal.z*Normal.xyz;
 					BounceDirection.z -= 1.0f;
 
+					// TODO(Khisrow): Eventually we need to support two mapping,
+					// one for top-down view (which we don't do now) and one
+					// for sideways, which is what's happening here.
+					BounceDirection.z = -BounceDirection.z;
+#if 1
 					environment_map *FarMap = 0;
+					real32 DistanceFromMapinZ = 2.0f;
 					real32 tEnvMap = BounceDirection.y;
 					real32 tFarMap = 0.0f;
 					if(tEnvMap < -0.5f)
 					{
 						FarMap = Bottom;
 						tFarMap = -1.0f - 2.0f*tEnvMap;
-						BounceDirection.y = -BounceDirection.y;
+						DistanceFromMapinZ = -DistanceFromMapinZ;
 					}
 					else if(tEnvMap > 0.5f)
 					{
@@ -341,11 +383,30 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 					v3 LightColor = {0, 0, 0};
 					if(FarMap)
 					{
-						v3 FarMapColor = SampleEnvironmentMap(ScreenSpaceUV, BounceDirection, Normal.w, FarMap);
+						v3 FarMapColor = SampleEnvironmentMap(ScreenSpaceUV, BounceDirection, Normal.w, FarMap,
+															  DistanceFromMapinZ);
 						LightColor = Lerp(LightColor, tFarMap, FarMapColor);
 					}
 
 					Texel.rgb = Texel.rgb + Texel.a*LightColor;
+#else
+					// Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f*BounceDirection;
+					// Texel.r = 0.0f;
+					// Texel.b = 0.0f;
+
+					real32 Isoline = -0.9f;
+					if((BounceDirection.y >= (Isoline-0.05f)) &&
+					   (BounceDirection.y <= (Isoline+0.05f)))
+					{
+						Texel.rgb = V3(1, 1, 1);
+					}
+					else
+					{
+						Texel.rgb = V3(0, 0, 0);
+					}
+
+					Texel.a = 1.0f;
+#endif
 				}
 
 				Texel = Hadamard(Texel, Color);
