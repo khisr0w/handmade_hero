@@ -8,6 +8,24 @@
 
 #if !defined(HANDMADE_RENDER_GROUP_H)
 
+/* 
+   NOTE(Khisrow):
+
+   1) Everywhere outside the renderer, Y _always_ goes upward, X is to the right.
+
+   2) All bitmap, including the render target, are assumed to be bottom-up (meaning
+	  the first row pointer points to the the bottom-most row when viewed on screen).
+
+   3) Unless otherwise specified, all inputs to the renderer are in world coordinates
+   	  ("meters"), _not_ pixels. Anything that is in pixel values will be explicitly
+	  marked as such.
+
+   4) Z is a special coordinate because it is broken into discrete slices. And the
+	  renderer actually understand these slices (potentially).
+
+	// TODO(Khisrow): ZHANDLING
+*/
+
 struct loaded_bitmap
 {
 	int32_t Width;
@@ -59,20 +77,6 @@ struct render_entry_saturation
 	real32 Level;
 };
 
-struct render_entry_coordinate_system
-{
-	v2 Origin;
-	v2 XAxis;
-	v2 YAxis;
-	v4 Color;
-	loaded_bitmap *Texture;
-	loaded_bitmap *NormalMap;
-
-	environment_map *Top;
-	environment_map *Middle;
-	environment_map *Bottom;
-};
-
 struct render_entry_bitmap
 {
 	render_entity_basis EntityBasis;
@@ -86,6 +90,23 @@ struct render_entry_rectangle
 	v4 Color;
 	v2 Dim;
 };
+
+// NOTE(Khisrow): This is only for test:
+// {
+struct render_entry_coordinate_system
+{
+	v2 Origin;
+	v2 XAxis;
+	v2 YAxis;
+	v4 Color;
+	loaded_bitmap *Texture;
+	loaded_bitmap *NormalMap;
+
+	environment_map *Top;
+	environment_map *Middle;
+	environment_map *Bottom;
+};
+// }
 
 struct render_group
 {
