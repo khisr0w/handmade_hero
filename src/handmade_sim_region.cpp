@@ -102,7 +102,7 @@ AddEntityRaw(game_state *GameState, sim_region *SimRegion, uint32_t StorageIndex
 
 			if(Source)
 			{
-				// TODO This should really be decompression step not a full on copy
+				// TODO(Khisrow): This should really be decompression step not a full on copy
 				*Entity = Source->Sim;
 				LoadEntityReference(GameState, SimRegion, &Entity->Sword);
 
