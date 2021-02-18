@@ -18,7 +18,7 @@ struct world_position
 	int32_t ChunkX;
 	int32_t ChunkZ;
 
-	// NOTE This is Tile-relative X and Y
+	// NOTE(Khisrow): These are the offsets from the chunk center
 	v3 Offset_;
 };
 
