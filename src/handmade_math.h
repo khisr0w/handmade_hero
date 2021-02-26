@@ -37,21 +37,21 @@ union v3
 	struct
 	{
 		v2 xy;
-		real32 Ingored0_;
+		real32 Ignored0_;
 	};
 	struct
 	{
-		real32 Ingored1_;
+		real32 Ignored1_;
 		v2 yz;
 	};
 	struct
 	{
 		v2 uv;
-		real32 Ingored0_;
+		real32 Ignored2_;
 	};
 	struct
 	{
-		real32 Ingored1_;
+		real32 Ignored3_;
 		v2 vw;
 	};
 	real32 E[3];
@@ -88,20 +88,20 @@ union v4
 	struct
 	{
 		v2 xy;
-		real32 Ingored0_;
-		real32 Ingored1_;
+		real32 Ignored0_;
+		real32 Ignored1_;
 	};
 
 	struct
 	{
-		real32 Ingored2_;
+		real32 Ignored2_;
 		v2 yz;
-		real32 Ingored3_;
+		real32 Ignored3_;
 	};
 	struct
 	{
-		real32 Ingored4_;
-		real32 Ingored5_;
+		real32 Ignored4_;
+		real32 Ignored5_;
 		v2 zw;
 	};
 

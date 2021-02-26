@@ -829,7 +829,7 @@ AllocateRenderGroup(memory_arena *Arena, uint32_t MaxPushBufferSize,
 	Result->GameCamera.FocalLength = 0.6f; // NOTE(Khisrow): Meters the person is sitting from their monitor
 	Result->GameCamera.DistanceAboveTarget = 9.0f;
 	Result->RenderCamera = Result->GameCamera;
-	Result->RenderCamera.DistanceAboveTarget = 30.0f;
+	Result->RenderCamera.DistanceAboveTarget = 9.0f;
 
 	Result->GlobalAlpha = 1.0f;
 
