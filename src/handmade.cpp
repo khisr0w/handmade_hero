@@ -99,8 +99,6 @@ DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntire
 		Result.AlignPercentage = TopDownAlign(&Result, V2i(AlignX, TopDownAlignY));
 		Result.WidthOverHeight = SafeRatio0((real32)Result.Width, (real32)Result.Height);
 
-		real32 PixelsToMeters = 1.0f / 42.0f;
-
 		Assert(Result.Height >= 0);
 		Assert(Result.Width >= 0);
 		Assert(Header->Compression == 3);
@@ -474,8 +472,11 @@ MakeNullCollision(game_state *GameState)
 internal void
 FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer *GroundBuffer, world_position *ChunkP)
 {
+	// TODO(Khisrow): Decide what our pushbuffer size is!
 	temporary_memory GroundMemory = BeginTemporaryMemory(&TranState->TranArena);
-	render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
+
+	// TODO(Khisrow): How do we want to control our ground chunk resolution?
+	render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4), 1920, 1080);
 
 	loaded_bitmap *Buffer = &GroundBuffer->Bitmap;
 
@@ -754,9 +755,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	uint32_t GroundBufferWidth = 256;
 	uint32_t GroundBufferHeight = 256;	
 
-	// TODO(Khisrow): Remove this!
-	real32 PixelsToMeters = 1.0f / 42.0f;
-
 	Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
 	game_state *GameState = (game_state *)Memory->PermanentStorage;
 	if(!Memory->IsInitialized)
@@ -766,6 +764,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 		GameState->TypicalFloorHeight = 3.0f;
 
+		// TODO(Khisrow): Remove this!
+		real32 PixelsToMeters = 1.0f / 42.0f;
 		v3 WorldChunkDimInMeters = {PixelsToMeters*(real32)GroundBufferWidth,
 									PixelsToMeters*(real32)GroundBufferHeight,
 									GameState->TypicalFloorHeight};
@@ -892,7 +892,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #else
 			uint32_t DoorDirection = RandomChoice(&Series, 2);
 #endif
-			DoorDirection = 3;
+			//DoorDirection = 3;
 
 			bool32 CreatedZDoor = false;
 			if(DoorDirection == 3)
@@ -1178,8 +1178,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	//
 
 	temporary_memory RenderMemory = BeginTemporaryMemory(&TranState->TranArena);
-	// TODO Decide what our PushBufferSize is
-	render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
 
 	loaded_bitmap DrawBuffer_ = {};
 	loaded_bitmap *DrawBuffer = &DrawBuffer_;
@@ -1188,15 +1186,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 	DrawBuffer->Pitch = Buffer->Pitch;
 	DrawBuffer->Memory = Buffer->Memory;
 
+	// TODO Decide what our PushBufferSize is
+	render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4),
+													DrawBuffer->Width, DrawBuffer->Height);
+
 	Clear(RenderGroup, V4(0.25f, 0.25f, 0.25f, 0.0f));
 
 	v2 ScreenCenter = {0.5f*(real32)DrawBuffer->Width,
 					   0.5f*(real32)DrawBuffer->Height};
 
-	real32 ScreenWidthInMeters = DrawBuffer->Width*PixelsToMeters;
-	real32 ScreenHeightInMeters = DrawBuffer->Height*PixelsToMeters;
-	rectangle3 CameraBoundsInMeters = RectCenterDim(V3(0, 0, 0),
-													V3(ScreenWidthInMeters, ScreenHeightInMeters, 0.0f));
+	rectangle2 ScreenBounds = GetCameraRectangleAtTarget(RenderGroup);
+	rectangle3 CameraBoundsInMeters = RectMinMax(V3(ScreenBounds.Min, 0.0f),
+												 V3(ScreenBounds.Max, 0.0f));
 	CameraBoundsInMeters.Min.z = -3.0f*GameState->TypicalFloorHeight;
 	CameraBoundsInMeters.Max.z = 1.0f*GameState->TypicalFloorHeight;
 
@@ -1282,7 +1283,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	// TODO How big do we want to expand here?
 	// TODO(Khisrow): Do we want to simulate upper floors, etc.?
-	v3 SimBoundExpansion = V3(15.0f, 15.0f, GameState->TypicalFloorHeight);
+	v3 SimBoundExpansion = V3(15.0f, 15.0f, 0.0f);
 	rectangle3 SimBounds = AddRadiusTo(CameraBoundsInMeters, SimBoundExpansion);
 	temporary_memory SimMemory = BeginTemporaryMemory(&TranState->TranArena);
 	world_position SimCenterP = GameState->CameraP;
@@ -1290,6 +1291,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 									 GameState->CameraP, SimBounds, Input->dtForFrame);
 
 	v3 CameraP = Subtract(World, &GameState->CameraP, &SimCenterP);
+
+	PushRectOutline(RenderGroup, V3(0, 0, 0), GetDim(ScreenBounds), V4(1.0f, 1.0f, 0.0f, 1));
+	PushRectOutline(RenderGroup, V3(0, 0, 0), GetDim(SimBounds).xy, V4(0.0f, 1.0f, 1.0f, 1));
+	PushRectOutline(RenderGroup, V3(0, 0, 0), GetDim(SimRegion->Bounds).xy, V4(1.0f, 0.0f, 1.0f, 1));
 
 	for(uint32_t EntityIndex = 0;
 		EntityIndex < SimRegion->EntityCount;

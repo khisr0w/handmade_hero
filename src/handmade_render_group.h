@@ -116,8 +116,21 @@ struct render_entry_coordinate_system
 };
 // }
 
+struct render_group_camera
+{
+	// NOTE(Khisrow): Camera Parameters
+	real32 FocalLength;
+	real32 DistanceAboveTarget;
+};
+
 struct render_group
 {
+	real32 MetersToPixels; // NOTE(Khisrow): This translates meters _on the monitor_ into pixels _on the monitor_
+	v2 MonitorHalfDimInMeters;
+
+	render_group_camera GameCamera;
+	render_group_camera RenderCamera;
+
 	real32 GlobalAlpha;
 
 	render_basis *DefaultBasis;
@@ -126,17 +139,6 @@ struct render_group
 	uint32_t PushBufferSize;
 	uint8_t *PushBufferBase;
 };
-
-// NOTE(Khisrow): Renderer API
-#if 0
-inline void
-PushBitmap(render_group *Group, loaded_bitmap *Bitmap, v2 Offset, real32 OffsetZ,
-		   v4 Color = V4(1, 1, 1, 1))
-inline void PushRect(render_group *Group, v2 Offset, real32 OffsetZ, v2 Dim, v4 Color);
-inline void PushRectOutline(render_group *Group, v2 Offset, real32 OffsetZ, v2 Dim, v4 Color);
-inline void Clear(render_group *Group, v4 Color);
-#endif
-
 
 #define HANDMADE_RENDER_GROUP_H
 #endif
