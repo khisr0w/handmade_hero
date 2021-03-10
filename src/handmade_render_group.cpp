@@ -229,6 +229,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 					environment_map *Top, environment_map *Middle, environment_map *Bottom,
 					real32 PixelsToMeters)
 {
+	BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
 	// NOTE Premultiply color up front
 	Color.rgb *= Color.a;
 
@@ -299,6 +300,8 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 			 X <= XMax;
 			 ++X)
 		{
+			BEGIN_TIMED_BLOCK(TestPixel);
+
 			v2 PixelP = V2i(X, Y);
 			v2 d = PixelP - Origin;
 			// TODO(Khisrow): PerpInner
@@ -313,6 +316,8 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 			   (Edge2 < 0) &&
 			   (Edge3 < 0))
 			{
+
+				BEGIN_TIMED_BLOCK(FillPixel);
 #if 1
 				v2 ScreenSpaceUV = {(real32)X*InvWidthMax, FixedCastY};
 				real32 ZDiff = PixelsToMeters*((real32)Y - OriginY);
@@ -341,6 +346,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 
 				bilinear_sample TexelSample = BilinearSample(Texture, iX, iY);
 				v4 Texel = SRGBBilinearBlend(TexelSample, fX, fY);
+#if 0
 				if(NormalMap)
 				{
 					bilinear_sample NormalSample = BilinearSample(NormalMap, iX, iY);
@@ -376,7 +382,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 					// one for top-down view (which we don't do now) and one
 					// for sideways, which is what's happening here.
 					BounceDirection.z = -BounceDirection.z;
-#if 1
+
 					environment_map *FarMap = 0;
 					real32 Pz = OriginZ + ZDiff;
 					real32 MapZ = 2.0f;
@@ -410,26 +416,8 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 					Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f*BounceDirection;
 					Texel.rgb *= Texel.a;
 #endif
-#else
-					// Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f*BounceDirection;
-					// Texel.r = 0.0f;
-					// Texel.b = 0.0f;
-
-					real32 Isoline = -0.9f;
-					if((BounceDirection.y >= (Isoline-0.05f)) &&
-					   (BounceDirection.y <= (Isoline+0.05f)))
-					{
-						Texel.rgb = V3(1, 1, 1);
-					}
-					else
-					{
-						Texel.rgb = V3(0, 0, 0);
-					}
-
-					Texel.a = 1.0f;
-#endif
 				}
-
+#endif
 				Texel = Hadamard(Texel, Color);
 				Texel.r = Clamp01(Texel.r);
 				Texel.g = Clamp01(Texel.g);
@@ -452,12 +440,18 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 						  ((uint32_t)(Blended255.r + 0.5f) << 16) |
 						  ((uint32_t)(Blended255.g + 0.5f) << 8)  |
 						  ((uint32_t)(Blended255.b + 0.5f) << 0));
+
+				END_TIMED_BLOCK(FillPixel);
 			}
 			++Pixel;
+
+			END_TIMED_BLOCK(TestPixel);
 		}	
 
 		Row += Buffer->Pitch;
 	}
+
+	END_TIMED_BLOCK(DrawRectangleSlowly)
 }
 
 internal void
@@ -708,6 +702,8 @@ GetRenderEntityBasisP(render_group *RenderGroup, render_entity_basis *EntityBasi
 internal void
 RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget)
 {
+	BEGIN_TIMED_BLOCK(RenderGroupToOutput);
+
 	v2 ScreenDim = {(real32)OutputTarget->Width,
 					(real32)OutputTarget->Height};
 
@@ -811,6 +807,8 @@ RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget)
 			InvalidDefaultCase;
 		}
 	}
+
+	END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
 internal render_group *

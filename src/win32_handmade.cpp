@@ -895,18 +895,50 @@ Win32ProcessPendingMessages(win32_state *State, game_controller_input *KeyboardC
 	}
 }
 
-inline LARGE_INTEGER Win32GetWallClock(void)
+inline LARGE_INTEGER
+Win32GetWallClock(void)
 {
 	LARGE_INTEGER Result;
 	QueryPerformanceCounter(&Result);
 	return Result;
 }
 
-inline real32 Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
+inline real32
+Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 {
 	real32 Result = ((real32)(End.QuadPart - Start.QuadPart) /
 					 (real32)GlobalPerfCounterFrequency);
 	return Result;
+}
+
+internal void
+HandleDebugCycleCounters(game_memory *Memory)
+{
+#if HANDMADE_INTERNAL
+	OutputDebugStringA("DEBUG CYCLE COUNTS:\n");
+	for(int32_t CounterIndex = 0;
+		CounterIndex < ArrayCount(Memory->Counters);
+		++CounterIndex)
+	{
+		// 226,846,710
+		debug_cycle_counter *Counter = Memory->Counters + CounterIndex;
+
+		if(Counter->HitCount)
+		{
+			char TextBuffer[256];
+			_snprintf_s(TextBuffer, sizeof(TextBuffer), 
+						"	%d: %I64ucy %uh %I64ucy/h\n",
+						CounterIndex,
+						Counter->CycleCount,
+						Counter->HitCount,
+						Counter->CycleCount / Counter->HitCount);
+			OutputDebugStringA(TextBuffer);
+			Counter->CycleCount = 0;
+			Counter->HitCount = 0;
+		}
+	}
+
+#endif
 }
 
 internal void
@@ -1420,6 +1452,7 @@ int CALLBACK WinMain(
 					if(Game.UpdateAndRender)
 					{
 						Game.UpdateAndRender(&Thread, &GameMemory, NewInput, &Buffer);
+						HandleDebugCycleCounters(&GameMemory);
 					}
 
 					LARGE_INTEGER AudioWallClock = Win32GetWallClock();

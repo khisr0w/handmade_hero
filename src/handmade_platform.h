@@ -104,6 +104,24 @@ typedef struct thread_context
    protect against lost data!
 */
 
+enum 
+{
+	DebugCycleCounter_GameUpdateAndRender,
+	DebugCycleCounter_RenderGroupToOutput,
+	DebugCycleCounter_DrawRectangleSlowly,
+	DebugCycleCounter_TestPixel,
+	DebugCycleCounter_FillPixel,
+	DebugCycleCounter_Count
+};
+
+typedef struct debug_cycle_counter
+{
+	uint64_t CycleCount;
+	uint32_t HitCount;
+} debug_cycle_counter;
+
+extern struct game_memory *GlobalDebugMemory;
+
 typedef struct debug_read_file_result
 {
 	uint32_t ContentsSize;
@@ -210,6 +228,18 @@ typedef struct game_memory
 	debug_platform_free_file_memory *DEBUGPlatformFreeFileMemory;
 	debug_platform_read_entire_file *DEBUGPlatformReadEntireFile;
 	debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
+
+#if HANDMADE_INTERNAL
+	debug_cycle_counter Counters[DebugCycleCounter_Count];
+#endif
+
+#if _MSC_VER
+	#define BEGIN_TIMED_BLOCK(ID) uint64_t StarCycleCount##ID = __rdtsc()
+	#define END_TIMED_BLOCK(ID) GlobalDebugMemory->Counters[DebugCycleCounter_##ID].CycleCount +=  __rdtsc() - StarCycleCount##ID; ++GlobalDebugMemory->Counters[DebugCycleCounter_##ID].HitCount;
+#else
+	#define BEGIN_TIMED_BLOCK(ID)
+	#define END_TIMED_BLOCK(ID)
+#endif
 } game_memory;
 
 #define GAME_UPDATE_AND_RENDER(name) void name (thread_context *Thread, game_memory *Memory,\

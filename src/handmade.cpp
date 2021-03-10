@@ -491,11 +491,11 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 	Buffer->WidthOverHeight = 1.0f;
 	render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4),
 													Buffer->Width, Buffer->Height);
-
 	Clear(RenderGroup, V4(1.0f, 1.0f, 0.0f, 1.0f));
 
 	GroundBuffer->P = *ChunkP;
-#if 1
+#if 0
+
 	real32 Width = GameState->World->ChunkDimInMeters.x;
 	real32 Height = GameState->World->ChunkDimInMeters.y;
 	v2 HalfDim = 0.5f*V2(Width, Height);
@@ -759,8 +759,17 @@ SetTopDownAlign(hero_bitmaps* Bitmap, v2 Align)
 	Bitmap->Torso.AlignPercentage = Align;
 }
 
+#if HANDMADE_INTERNAL
+game_memory *GlobalDebugMemory;
+#endif
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
+#if HANDMADE_INTERNAL
+	GlobalDebugMemory = Memory;
+#endif
+
+	BEGIN_TIMED_BLOCK(GameUpdateAndRender);
+
 	Assert((&Input->Controllers[0].Back - &Input->Controllers[0].Buttons[0]) ==
 			(ArrayCount(Input->Controllers[0].Buttons) - 1));
 
@@ -1228,7 +1237,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				Basis->P = Delta;
 				real32 GroundSideInMeters = World->ChunkDimInMeters.x;
 				PushBitmap(RenderGroup, Bitmap, GroundSideInMeters, V3(0, 0, 0));
-#if 1
+#if 0
 				PushRectOutline(RenderGroup, V3(0, 0, 0), V2(GroundSideInMeters , GroundSideInMeters), V4(1.0f, 1.0f, 0.0f, 1.0f));
 #endif
 			}
@@ -1630,6 +1639,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 	CheckArena(&GameState->WorldArena);
 	CheckArena(&TranState->TranArena);
+
+	END_TIMED_BLOCK(GameUpdateAndRender);
 }
 
 #if 0
