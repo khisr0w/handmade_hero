@@ -106,12 +106,11 @@ typedef struct thread_context
 
 enum 
 {
-	DebugCycleCounter_GameUpdateAndRender,
-	DebugCycleCounter_RenderGroupToOutput,
-	DebugCycleCounter_DrawRectangleSlowly,
-	DebugCycleCounter_TestPixel,
-	DebugCycleCounter_FillPixel,
-	DebugCycleCounter_DrawRectangleHopefullyQuickly,
+	/* 0 */ DebugCycleCounter_GameUpdateAndRender,
+	/* 1 */ DebugCycleCounter_RenderGroupToOutput,
+	/* 2 */ DebugCycleCounter_DrawRectangleSlowly,
+	/* 3 */ DebugCycleCounter_ProcessPixel,
+	/* 4 */ DebugCycleCounter_DrawRectangleHopefullyQuickly,
 	DebugCycleCounter_Count
 };
 
@@ -237,6 +236,7 @@ typedef struct game_memory
 #if _MSC_VER
 	#define BEGIN_TIMED_BLOCK(ID) uint64_t StarCycleCount##ID = __rdtsc()
 	#define END_TIMED_BLOCK(ID) GlobalDebugMemory->Counters[DebugCycleCounter_##ID].CycleCount +=  __rdtsc() - StarCycleCount##ID; ++GlobalDebugMemory->Counters[DebugCycleCounter_##ID].HitCount;
+	#define END_TIMED_BLOCK_COUNTED(ID, Count) GlobalDebugMemory->Counters[DebugCycleCounter_##ID].CycleCount +=  __rdtsc() - StarCycleCount##ID; GlobalDebugMemory->Counters[DebugCycleCounter_##ID].HitCount += (Count);
 #else
 	#define BEGIN_TIMED_BLOCK(ID)
 	#define END_TIMED_BLOCK(ID)
