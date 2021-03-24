@@ -293,6 +293,8 @@ DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAx
 	__m128 Inv255_4x = _mm_set1_ps(Inv255);
 	real32 One255 = 255.0f;
 	__m128 One255_4x = _mm_set1_ps(One255);
+	__m128 Half_4x = _mm_set1_ps(0.5f);
+
 	__m128 One = _mm_set1_ps(1.0f);
 	__m128 Zero = _mm_set1_ps(0.0f);
 
@@ -362,9 +364,9 @@ DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAx
 #define M(a, i) ((real32 *)&(a))[i]
 
 			__m128 PixelPx = _mm_set_ps((real32)(XI + 3),
-										 (real32)(XI + 2),
-										 (real32)(XI + 1),
-										 (real32)(XI + 0));
+										(real32)(XI + 2),
+										(real32)(XI + 1),
+										(real32)(XI + 0));
 
 			__m128 PixelPy = _mm_set1_ps((real32)Y);
 
@@ -503,22 +505,24 @@ DrawRectangleHopefullyQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAx
 			Blendedb = _mm_mul_ps(One255_4x, _mm_sqrt_ps(Blendedb));
 			Blendeda = _mm_mul_ps(One255_4x, Blendeda);
 
-			for(int32_t I = 0;
-				I < 4;
-				++I)
-			{
-				if(ShouldFill[I])
-				{
-					// NOTE(Khisrow): Repack
-					*(Pixel + I) = (((uint32_t)(M(Blendeda, I) + 0.5f) << 24) |
-									((uint32_t)(M(Blendedr, I) + 0.5f) << 16) |
-									((uint32_t)(M(Blendedg, I) + 0.5f) << 8)  |
-									((uint32_t)(M(Blendedb, I) + 0.5f) << 0));
-				}
-			}
+			// TODO(Khisrow): Should we set the rounding mode to nearest and save the adds?
+			__m128i Intr = _mm_cvttps_epi32(_mm_add_ps(Blendedr, Half_4x));
+			__m128i Intg = _mm_cvttps_epi32(_mm_add_ps(Blendedg, Half_4x));
+			__m128i Intb = _mm_cvttps_epi32(_mm_add_ps(Blendedb, Half_4x));
+			__m128i Inta = _mm_cvttps_epi32(_mm_add_ps(Blendeda, Half_4x));
+
+			__m128i Sr = _mm_slli_epi32(Intr, 16);
+			__m128i Sg = _mm_slli_epi32(Intg, 8);
+			__m128i Sb = Intb;
+			__m128i Sa = _mm_slli_epi32(Inta, 24);
+
+			__m128i Out = _mm_or_si128(_mm_or_si128(Sr, Sg), _mm_or_si128(Sb, Sa));
+
+			// TODO(Khisrow): Write only the pixels where the ShouldFill[I] == true!
+			_mm_storeu_si128((__m128i *)Pixel, Out);
 
 			Pixel += 4;
-		}	
+		}
 
 		Row += Buffer->Pitch;
 	}
