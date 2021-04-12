@@ -1066,7 +1066,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 						(uint8_t *)Memory->TransientStorage + sizeof(transient_state));
 
 		// TODO Pick a real number here!
-		TranState->GroundBufferCount = 32; //128;
+		TranState->GroundBufferCount = 64; //128;
 		TranState->GroundBuffers = PushArray(&TranState->TranArena, TranState->GroundBufferCount, ground_buffer);
 		for(uint32_t GroundBufferIndex = 0;
 			GroundBufferIndex < TranState->GroundBufferCount;
@@ -1224,11 +1224,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		++GroundBufferIndex)
 	{
 		ground_buffer *GroundBuffer = TranState->GroundBuffers + GroundBufferIndex;
-		if(IsValid(GroundBuffer->P) )
+		if(IsValid(GroundBuffer->P))
 		{
 			loaded_bitmap *Bitmap = &GroundBuffer->Bitmap;
 			v3 Delta = Subtract(GameState->World, &GroundBuffer->P, &GameState->CameraP);
-			Bitmap->AlignPercentage = V2(0.5f, 0.5f);
+			// Bitmap->AlignPercentage = V2(0.5f, 0.5f);
 
 			if((Delta.z >= -1.0f) && (Delta.z < 1.0f))
 			{
@@ -1237,7 +1237,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 				Basis->P = Delta;
 				real32 GroundSideInMeters = World->ChunkDimInMeters.x;
 				PushBitmap(RenderGroup, Bitmap, GroundSideInMeters, V3(0, 0, 0));
-#if 0
+#if 1
 				PushRectOutline(RenderGroup, V3(0, 0, 0), V2(GroundSideInMeters , GroundSideInMeters), V4(1.0f, 1.0f, 0.0f, 1.0f));
 #endif
 			}
@@ -1303,7 +1303,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 		}
 	}
 
-	// TODO How big do we want to expand here?
+	// TODO(Khisrow): How big do we want to expand here?
 	// TODO(Khisrow): Do we want to simulate upper floors, etc.?
 	v3 SimBoundExpansion = V3(15.0f, 15.0f, 0.0f);
 	rectangle3 SimBounds = AddRadiusTo(CameraBoundsInMeters, SimBoundExpansion);
