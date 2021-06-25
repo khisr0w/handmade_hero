@@ -6,48 +6,54 @@
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
+#if !defined(HANDMADE_WORLD_H)
 struct world_position
 {
-	// TODO It seems like we have to store ChunkX/Y/Z with each
-	// entity because even though the sim region gather doesn't
-	// need it at first, and we could get by without it, entity
-	// references pull in entities WITHOUT going through their
-	// world_chunk, and thus still need to know the ChunkX/Y/Z
+    // TODO(Khisrow): It seems like we have to store ChunkX/Y/Z with each
+    // entity because even though the sim region gather doesn't need it
+    // at first, and we could get by without it, entity references pull
+    // in entities WITHOUT going through their world_chunk, and thus
+    // still need to know the ChunkX/Y/Z
+    
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
-	int32_t ChunkY;
-	int32_t ChunkX;
-	int32_t ChunkZ;
-
-	// NOTE(Khisrow): These are the offsets from the chunk center
-	v3 Offset_;
+    // NOTE(Khisrow): These are the offsets from the chunk center
+    v3 Offset_;
 };
 
+// TODO(Khisrow): Could make this just tile_chunk and then allow multiple tile chunks per X/Y/Z
 struct world_entity_block
 {
-	uint32_t EntityCount;
-	uint32_t LowEntityIndex[16];
-	world_entity_block *Next;
+    uint32 EntityCount;
+    uint32 LowEntityIndex[16];
+    world_entity_block *Next;
 };
 
 struct world_chunk
 {
-	int32_t ChunkX;
-	int32_t ChunkY;
-	int32_t ChunkZ;
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
-	// TODO Profile this and determine if a pointer would be better here!
-	world_entity_block FirstBlock;
-
-	world_chunk *NextInHash;
+    // TODO(Khisrow): Profile this and determine if a pointer would be better here!
+    world_entity_block FirstBlock;
+    
+    world_chunk *NextInHash;
 };
 
 struct world
 {
-	// real32 TileSideInMeters;
-	// real32 TileDepthInMeters;
-	v3 ChunkDimInMeters;
+    v3 ChunkDimInMeters;
 
-	world_entity_block *FirstFree;
+    world_entity_block *FirstFree;
 
-	world_chunk ChunkHash[4096];
+    // TODO(Khisrow): WorldChunkHash should probably switch to pointers IF
+    // tile entity blocks continue to be stored en masse directly in the tile chunk!
+    // NOTE(Khisrow): A the moment, this must be a power of two!
+    world_chunk ChunkHash[4096];
 };
+
+#define HANDMADE_WORLD_H
+#endif

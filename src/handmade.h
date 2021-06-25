@@ -90,101 +90,93 @@
 
 #include "handmade_platform.h"
 
-#define Minimum(A, B) (((A) < (B)) ? A : B)
-#define Maximum(A, B) (((A) > (B)) ? A : B)
+#define Minimum(A, B) ((A < B) ? (A) : (B))
+#define Maximum(A, B) ((A > B) ? (A) : (B))
 
-/* 
-   TODO Services that the platform layer provides to the game
-*/
-
-
-/* 
-   Services that the game provide to the platform layer
-*/
-
-// FOUR THINGS - Timing, Controller/Keyboard, Bitmap buffer to use, Sound Buffer to use
+//
+//
+//
 
 struct memory_arena
 {
-	memory_index Size;
-	uint8_t *Base;
-	memory_index Used;
-	
-	int32_t TempCount;
+    memory_index Size;
+    uint8 *Base;
+    memory_index Used;
+
+    int32 TempCount;
 };
 
 struct temporary_memory
 {
-	memory_arena *Arena;
-	memory_index Used;
+    memory_arena *Arena;
+    memory_index Used;
 };
 
-internal void
+inline void
 InitializeArena(memory_arena *Arena, memory_index Size, void *Base)
 {
-	Arena->Size = Size;
-	Arena->Base = (uint8_t *)Base;
-	Arena->Used = 0;
-	Arena->TempCount = 0;
+    Arena->Size = Size;
+    Arena->Base = (uint8 *)Base;
+    Arena->Used = 0;
+    Arena->TempCount = 0;
 }
 
 #define PushStruct(Arena, type) (type *)PushSize_(Arena, sizeof(type))
-#define PushArray(Arena, Count, type) (type *)PushSize_(Arena, Count*sizeof(type))
+#define PushArray(Arena, Count, type) (type *)PushSize_(Arena, (Count)*sizeof(type))
 #define PushSize(Arena, Size) PushSize_(Arena, Size)
-void *
+inline void *
 PushSize_(memory_arena *Arena, memory_index Size)
 {
-	Assert((Arena->Used + Size) <= Arena->Size);
-	void *Result = Arena->Base + Arena->Used;
-	Arena->Used += Size;
-
-	return Result;
+    Assert((Arena->Used + Size) <= Arena->Size);
+    void *Result = Arena->Base + Arena->Used;
+    Arena->Used += Size;
+    
+    return(Result);
 }
 
 inline temporary_memory
 BeginTemporaryMemory(memory_arena *Arena)
 {
-	temporary_memory Result;
+    temporary_memory Result;
 
-	Result.Arena = Arena;
-	Result.Used = Arena->Used;
+    Result.Arena = Arena;
+    Result.Used = Arena->Used;
 
-	++Arena->TempCount;
+    ++Arena->TempCount;
 
-	return Result;
+    return(Result);
 }
 
 inline void
 EndTemporaryMemory(temporary_memory TempMem)
 {
-	memory_arena *Arena = TempMem.Arena;
-	Assert(Arena->Used >= TempMem.Used);
-	Arena->Used = TempMem.Used;
-	Assert(Arena->TempCount > 0);
-	--Arena->TempCount;
+    memory_arena *Arena = TempMem.Arena;
+    Assert(Arena->Used >= TempMem.Used);
+    Arena->Used = TempMem.Used;
+    Assert(Arena->TempCount > 0);
+    --Arena->TempCount;
 }
 
 inline void
 CheckArena(memory_arena *Arena)
 {
-	Assert(Arena->TempCount == 0);
+    Assert(Arena->TempCount == 0);
 }
 
-#define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance));
+#define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
 inline void
 ZeroSize(memory_index Size, void *Ptr)
 {
-	// TODO Check this guy for performance!
-	uint8_t *Byte = (uint8_t *)Ptr;
-	while(Size--)
-	{
-		*Byte++ = 0;
-	}
+    // TODO(Khisrow): Check this guy for performance
+    uint8 *Byte = (uint8 *)Ptr;
+    while(Size--)
+    {
+        *Byte++ = 0;
+    }
 }
 
 #include "handmade_instrinsics.h"
 #include "handmade_math.h"
-#include "handmade_random.h"
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
 #include "handmade_entity.h"
@@ -192,117 +184,121 @@ ZeroSize(memory_index Size, void *Ptr)
 
 struct hero_bitmaps
 {
-	loaded_bitmap Head;
-	loaded_bitmap Cape;
-	loaded_bitmap Torso;
+    loaded_bitmap Head;
+    loaded_bitmap Cape;
+    loaded_bitmap Torso;
 };
 
 struct low_entity
 {
-	world_position P;
-	sim_entity Sim;
+    // TODO(Khisrow): It's kind of busted that P's can be invalid here,
+    // AND we store whether they would be invalid in the flags field...
+    // Can we do something better here?
+    world_position P;
+    sim_entity Sim;
 };
 
 struct controlled_hero
 {
-	uint32_t EntityIndex;
-	// NOTE These are the controller requests for simulation
-	v2 ddP;
-	v2 dSword;
-	real32 dZ;
+    uint32 EntityIndex;
+    
+    // NOTE(Khisrow): These are the controller requests for simulation
+    v2 ddP;
+    v2 dSword;
+    real32 dZ;
 };
 
 struct pairwise_collision_rule
 {
-	bool32 CanCollide;
-	uint32_t StorageIndexA;
-	uint32_t StorageIndexB;
-
-	pairwise_collision_rule *NextInHash;
+    bool32 CanCollide;
+    uint32 StorageIndexA;
+    uint32 StorageIndexB;
+    
+    pairwise_collision_rule *NextInHash;
 };
 struct game_state;
-internal void 
-AddCollisionRule(game_state *GameState, uint32_t StorageIndexA, uint32_t StorageIndexB, bool32 CanCollide);
-internal void
-ClearCollisionRulesFor(game_state *GameState, uint32_t StorageIndex);
+internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 ShouldCollide);
+internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex);
 
 struct ground_buffer
 {
-	// NOTE An Invalid P tells us that this ground_buffer has not been filled.
-	world_position P; // NOTE This is the center of the bitmap
-	loaded_bitmap Bitmap;
+    // NOTE(Khisrow): An invalid P tells us that this ground_buffer has not been filled
+    world_position P; // NOTE(Khisrow): This is the center of the bitmap
+    loaded_bitmap Bitmap;
 };
 
 struct game_state
 {
-	memory_arena WorldArena;
-	world* World;
+    memory_arena WorldArena;
+    world *World;
 
-	real32 TypicalFloorHeight;
+    real32 TypicalFloorHeight;
+    
+    // TODO(Khisrow): Should we allow split-screen?
+    uint32 CameraFollowingEntityIndex;
+    world_position CameraP;
 
-	// TODO Split-screen?
-	uint32_t CameraFollowingEntityIndex;
-	world_position CameraP;
+    controlled_hero ControlledHeroes[ArrayCount(((game_input *)0)->Controllers)];
 
-	controlled_hero ControlledHeroes[ArrayCount(((game_input *)0)->Controllers)];
+    // TODO(Khisrow): Change the name to "stored entity"
+    uint32 LowEntityCount;
+    low_entity LowEntities[100000];
 
-	uint32_t LowEntityCount;
-	low_entity LowEntities[100000];
+    loaded_bitmap Grass[2];
+    loaded_bitmap Stone[4];
+    loaded_bitmap Tuft[3];
+    
+    loaded_bitmap Backdrop;
+    loaded_bitmap Shadow;
+    hero_bitmaps HeroBitmaps[4];
 
-	loaded_bitmap Grass[2];
-	loaded_bitmap Stone[4];
-	loaded_bitmap Tuft[3];
+    loaded_bitmap Tree;
+    loaded_bitmap Sword;
+    loaded_bitmap Stairwell;
 
-	loaded_bitmap BackDrop;
-	loaded_bitmap Shadow;
-	hero_bitmaps HeroBitmaps[4];
+    // TODO(Khisrow): Must be power of two
+    pairwise_collision_rule *CollisionRuleHash[256];
+    pairwise_collision_rule *FirstFreeCollisionRule;
 
-	loaded_bitmap Tree;
-	loaded_bitmap Sword;
-	loaded_bitmap Stairwell;
+    sim_entity_collision_volume_group *NullCollision;
+    sim_entity_collision_volume_group *SwordCollision;
+    sim_entity_collision_volume_group *StairCollision;
+    sim_entity_collision_volume_group *PlayerCollision;
+    sim_entity_collision_volume_group *MonstarCollision;
+    sim_entity_collision_volume_group *FamiliarCollision;
+    sim_entity_collision_volume_group *WallCollision;
+    sim_entity_collision_volume_group *StandardRoomCollision;
 
-	// TODO This must be a power of two
-	pairwise_collision_rule *CollisionRuleHash[256];
-	pairwise_collision_rule *FirstFreeCollisionRule;
+    real32 Time;
 
-	sim_entity_collision_volume_group *NullCollision;
-	sim_entity_collision_volume_group *SwordCollision;
-	sim_entity_collision_volume_group *StairCollision;
-	sim_entity_collision_volume_group *PlayerCollision;
-	sim_entity_collision_volume_group *MonstarCollision;
-	sim_entity_collision_volume_group *FamiliarCollision;
-	sim_entity_collision_volume_group *WallCollision;
-	sim_entity_collision_volume_group *StandardRoomCollision;
-
-	real32 Time;
-
-	loaded_bitmap TestDiffuse;
-	loaded_bitmap TestNormal;
+    loaded_bitmap TestDiffuse; // TODO(Khisrow): Re-fill this guy with gray.
+    loaded_bitmap TestNormal;
 };
 
 struct transient_state
 {
-	bool32 IsInitialized;
-	memory_arena TranArena;
-	uint32_t GroundBufferCount;
-	ground_buffer *GroundBuffers;
+    bool32 IsInitialized;
+    memory_arena TranArena;    
+    uint32 GroundBufferCount;
+    ground_buffer *GroundBuffers;
 
-	uint32_t EnvMapWidth;
-	uint32_t EnvMapHeight;
-	environment_map EnvMaps[3]; // NOTE (Khisrow): 0 is bottom, 1 is middle, 2 is top
+    uint32 EnvMapWidth;
+    uint32 EnvMapHeight;
+    // NOTE(Khisrow): 0 is bottom, 1 is middle, 2 is top
+    environment_map EnvMaps[3];
 };
 
 inline low_entity *
-GetLowEntity(game_state *GameState, uint32_t Index)
+GetLowEntity(game_state *GameState, uint32 Index)
 {
-	low_entity *Result = 0;
+    low_entity *Result = 0;
+    
+    if((Index > 0) && (Index < GameState->LowEntityCount))
+    {
+        Result = GameState->LowEntities + Index;
+    }
 
-	if((Index > 0) && (Index < GameState->LowEntityCount))
-	{
-		Result = GameState->LowEntities + Index;
-	}
-
-	return Result;
+    return(Result);
 }
 
 #define HANDMADE_H

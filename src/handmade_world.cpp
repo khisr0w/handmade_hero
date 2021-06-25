@@ -13,283 +13,302 @@
 #define TILES_PER_CHUNK 8
 
 inline world_position
-NullPosition()
+NullPosition(void)
 {
-	world_position Result = {};
+    world_position Result = {};
 
-	Result.ChunkX = TILE_CHUNK_UNINITIALIZED;
+    Result.ChunkX = TILE_CHUNK_UNINITIALIZED;
 
-	return Result;
+    return(Result);
 }
 
 inline bool32
 IsValid(world_position P)
 {
-	bool32 Result = (P.ChunkX != TILE_CHUNK_UNINITIALIZED);
-	
-	return Result;
+    bool32 Result = (P.ChunkX != TILE_CHUNK_UNINITIALIZED);
+    return(Result);
 }
 
 inline bool32
-IsCannonical(real32 ChunkDim, real32 TileRel)
+IsCanonical(real32 ChunkDim, real32 TileRel)
 {
-	// TODO Fix the floating point math so this can be < only
-	real32 Epsilon = 0.01f;
-	bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
-					 (TileRel <= (0.5f*ChunkDim  + Epsilon)));
-	return Result;
+    // TODO(Khisrow): Fix floating point math so this can be exact?
+    real32 Epsilon = 0.01f;
+    bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
+                     (TileRel <= (0.5f*ChunkDim + Epsilon)));
+
+    return(Result);
 }
 
 inline bool32
-IsCannonical(world *World, v3 Offset)
+IsCanonical(world *World, v3 Offset)
 {
-	bool32 Result = (IsCannonical(World->ChunkDimInMeters.x, Offset.x) &&
-					 IsCannonical(World->ChunkDimInMeters.y, Offset.y) &&
-					 IsCannonical(World->ChunkDimInMeters.z, Offset.z));
+    bool32 Result = (IsCanonical(World->ChunkDimInMeters.x, Offset.x) &&
+                     IsCanonical(World->ChunkDimInMeters.y, Offset.y) &&
+                     IsCanonical(World->ChunkDimInMeters.z, Offset.z));
 
-	return Result;
+    return(Result);
 }
 
 inline bool32
 AreInSameChunk(world *World, world_position *A, world_position *B)
 {
-	Assert(IsCannonical(World, A->Offset_));
-	Assert(IsCannonical(World, B->Offset_));
-	return ((A->ChunkX == B->ChunkX) &&
-			(A->ChunkY == B->ChunkY) &&
-			(A->ChunkZ == B->ChunkZ));
+    Assert(IsCanonical(World, A->Offset_));
+    Assert(IsCanonical(World, B->Offset_));
+    
+    bool32 Result = ((A->ChunkX == B->ChunkX) &&
+                     (A->ChunkY == B->ChunkY) &&
+                     (A->ChunkZ == B->ChunkZ));
+
+    return(Result);
 }
 
 inline world_chunk *
-GetWorldChunk(world *World, int32_t ChunkX, int32_t ChunkY, int32_t ChunkZ,
-			  memory_arena *Arena = 0)
+GetWorldChunk(world *World, int32 ChunkX, int32 ChunkY, int32 ChunkZ,
+              memory_arena *Arena = 0)
 {
-	Assert(ChunkX > -TILE_CHUNK_SAFE_MARGIN);
-	Assert(ChunkY > -TILE_CHUNK_SAFE_MARGIN);
-	Assert(ChunkZ > -TILE_CHUNK_SAFE_MARGIN);
-	Assert(ChunkX < TILE_CHUNK_SAFE_MARGIN);
-	Assert(ChunkY < TILE_CHUNK_SAFE_MARGIN);
-	Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkX > -TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkY > -TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkZ > -TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkX < TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkY < TILE_CHUNK_SAFE_MARGIN);
+    Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
+    
+    // TODO(Khisrow): BETTER HASH FUNCTION!!!!
+    uint32 HashValue = 19*ChunkX + 7*ChunkY + 3*ChunkZ;
+    uint32 HashSlot = HashValue & (ArrayCount(World->ChunkHash) - 1);
+    Assert(HashSlot < ArrayCount(World->ChunkHash));
+    
+    world_chunk *Chunk = World->ChunkHash + HashSlot;
+    do
+    {
+        if((ChunkX == Chunk->ChunkX) &&
+           (ChunkY == Chunk->ChunkY) &&
+           (ChunkZ == Chunk->ChunkZ))
+        {            
+            break;
+        }
 
-	uint32_t HashValue = 19*ChunkX + 7*ChunkY + 3*ChunkZ;
+        if(Arena && (Chunk->ChunkX != TILE_CHUNK_UNINITIALIZED) && (!Chunk->NextInHash))
+        {
+            Chunk->NextInHash = PushStruct(Arena, world_chunk);
+            Chunk = Chunk->NextInHash;
+            Chunk->ChunkX = TILE_CHUNK_UNINITIALIZED;
+        }
+        
+        if(Arena && (Chunk->ChunkX == TILE_CHUNK_UNINITIALIZED))
+        {
+            Chunk->ChunkX = ChunkX;
+            Chunk->ChunkY = ChunkY;
+            Chunk->ChunkZ = ChunkZ;
 
-	uint32_t HashSlot = HashValue & (ArrayCount(World->ChunkHash) - 1);
-	Assert(HashSlot < ArrayCount(World->ChunkHash));
+            Chunk->NextInHash = 0;
+            break;
+        }
 
-	world_chunk *Chunk = World->ChunkHash + HashSlot;
-	do
-	{
-		if((ChunkX == Chunk->ChunkX) &&
-		   (ChunkY == Chunk->ChunkY) && 
-		   (ChunkZ == Chunk->ChunkZ))
-		{
-			break;
-		}
-
-		if(Arena && (Chunk->ChunkX != TILE_CHUNK_UNINITIALIZED) && (!Chunk->NextInHash))
-		{
-			Chunk->NextInHash = PushStruct(Arena, world_chunk);
-			Chunk = Chunk->NextInHash;
-			Chunk->ChunkX = TILE_CHUNK_UNINITIALIZED;
-		}
-
-		if(Arena && (Chunk->ChunkX == TILE_CHUNK_UNINITIALIZED))
-		{
-			Chunk->ChunkX = ChunkX;
-			Chunk->ChunkY = ChunkY;
-			Chunk->ChunkZ = ChunkZ;
-
-			Chunk->NextInHash = 0;
-			break;
-		}
-
-		Chunk = Chunk->NextInHash;
-	} while(Chunk);
-
-	return Chunk;
+        Chunk = Chunk->NextInHash;
+    } while(Chunk);
+    
+    return(Chunk);
 }
 
 internal void
 InitializeWorld(world *World, v3 ChunkDimInMeters)
 {
-	World->ChunkDimInMeters = ChunkDimInMeters;
-	World->FirstFree = 0;
+    World->ChunkDimInMeters = ChunkDimInMeters;
+    World->FirstFree = 0;
 
-	for(uint32_t TileChunkIndex = 0;
-		TileChunkIndex < ArrayCount(World->ChunkHash);
-		++TileChunkIndex)
-	{
-		World->ChunkHash[TileChunkIndex].ChunkX = TILE_CHUNK_UNINITIALIZED;
-		World->ChunkHash[TileChunkIndex].FirstBlock.EntityCount = 0;
-	}
+    for(uint32 ChunkIndex = 0;
+        ChunkIndex < ArrayCount(World->ChunkHash);
+        ++ChunkIndex)
+    {
+        World->ChunkHash[ChunkIndex].ChunkX = TILE_CHUNK_UNINITIALIZED;
+        World->ChunkHash[ChunkIndex].FirstBlock.EntityCount = 0;
+    }
 }
 
 inline void
-RecanonicalizeCoord(real32 ChunkDim, int32_t *Tile, real32 *TileRel)
+RecanonicalizeCoord(real32 ChunkDim, int32 *Tile, real32 *TileRel)
 {
-	// NOTE World is toroidal topology, you go from one place and come to another place.
-	int32_t Offset = RoundReal32ToInt32(*TileRel / ChunkDim);
-	*Tile += Offset;
-	*TileRel -= Offset * ChunkDim;
+    // TODO(Khisrow): Need to do something that doesn't use the divide/multiply method
+    // for recanonicalizing because this can end up rounding back on to the tile
+    // you just came from.
 
-	Assert(IsCannonical(ChunkDim, *TileRel));
+    // NOTE(Khisrow): Wrapping IS NOT ALLOWED, so all coordinates are assumed to be
+    // within the safe margin!
+    // TODO(Khisrow): Assert that we are nowhere near the edges of the world.
+    
+    int32 Offset = RoundReal32ToInt32(*TileRel / ChunkDim);
+    *Tile += Offset;
+    *TileRel -= Offset*ChunkDim;
+
+    Assert(IsCanonical(ChunkDim, *TileRel));
 }
 
 inline world_position
 MapIntoChunkSpace(world *World, world_position BasePos, v3 Offset)
 {
-	world_position Result = BasePos;
+    world_position Result = BasePos;
 
-	Result.Offset_ += Offset;
-	RecanonicalizeCoord(World->ChunkDimInMeters.x, &Result.ChunkX, &Result.Offset_.x);
-	RecanonicalizeCoord(World->ChunkDimInMeters.y, &Result.ChunkY, &Result.Offset_.y);
-	RecanonicalizeCoord(World->ChunkDimInMeters.z, &Result.ChunkZ, &Result.Offset_.z);
-	
-	return Result;
+    Result.Offset_ += Offset;
+    RecanonicalizeCoord(World->ChunkDimInMeters.x, &Result.ChunkX, &Result.Offset_.x);
+    RecanonicalizeCoord(World->ChunkDimInMeters.y, &Result.ChunkY, &Result.Offset_.y);
+    RecanonicalizeCoord(World->ChunkDimInMeters.z, &Result.ChunkZ, &Result.Offset_.z);
+    
+    return(Result);
 }
 
 inline v3
 Subtract(world *World, world_position *A, world_position *B)
 {
-	v3 dTile = {(real32)A->ChunkX - (real32)B->ChunkX,
-				(real32)A->ChunkY - (real32)B->ChunkY,
-				(real32)A->ChunkZ - (real32)B->ChunkZ};
+    v3 dTile = {(real32)A->ChunkX - (real32)B->ChunkX,
+                (real32)A->ChunkY - (real32)B->ChunkY,
+                (real32)A->ChunkZ - (real32)B->ChunkZ};
+    
+    v3 Result = Hadamard(World->ChunkDimInMeters, dTile) + (A->Offset_ - B->Offset_);
 
-	v3 Result = Hadamard(World->ChunkDimInMeters, dTile) + (A->Offset_ - B->Offset_);
-
-	return Result;
+    return(Result);
 }
 
-internal world_position
-CenteredChunkPoint(uint32_t ChunkX, uint32_t ChunkY, uint32_t ChunkZ)
+inline world_position
+CenteredChunkPoint(uint32 ChunkX, uint32 ChunkY, uint32 ChunkZ)
 {
-	world_position Result = {};
+    world_position Result = {};
 
-	Result.ChunkX = ChunkX;
-	Result.ChunkY = ChunkY;
-	Result.ChunkZ = ChunkZ;
+    Result.ChunkX = ChunkX;
+    Result.ChunkY = ChunkY;
+    Result.ChunkZ = ChunkZ;
 
-	return Result;
+    return(Result);
 }
 
-internal world_position
+inline world_position
 CenteredChunkPoint(world_chunk *Chunk)
 {
-	world_position Result = CenteredChunkPoint(Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ);
+    world_position Result = CenteredChunkPoint(Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ);
 
-	return Result;
- }
+    return(Result);
+}
 
 inline void
-ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32_t LowEntityIndex,
-						world_position *OldP, world_position *NewP)
+ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32 LowEntityIndex,
+                        world_position *OldP, world_position *NewP)
 {
-	Assert(!OldP || IsValid(*OldP));
-	Assert(!NewP || IsValid(*NewP));
+    // TODO(Khisrow): If this moves an entity into the camera bounds, should it automatically
+    // go into the high set immediately?
+    // If it moves _out_ of the camera bounds, should it be removed from the high set
+    // immediately?
 
-	if(OldP && NewP && AreInSameChunk(World, OldP, NewP))
-	{
-		// NOTE Do nothing
-	}
-	else
-	{
-		if(OldP)
-		{
-			// NOTE: Pull the entity out of its old entity block
-			world_chunk *Chunk = GetWorldChunk(World, OldP->ChunkX, OldP->ChunkY, OldP->ChunkZ);
-			Assert(Chunk);
-			if(Chunk)
-			{
-				bool32 NotFound = true;
-				world_entity_block *FirstBlock = &Chunk->FirstBlock;
-				for(world_entity_block *Block = FirstBlock;
-					Block && NotFound;
-					Block = Block->Next)
-				{
-					for(uint32_t Index = 0;
-						(Index < Block->EntityCount) && NotFound;
-						++Index)
-					{
-						if(Block->LowEntityIndex[Index] == LowEntityIndex)
-						{
-							Assert(FirstBlock->EntityCount > 0);
-							Block->LowEntityIndex[Index] =
-								FirstBlock->LowEntityIndex[--FirstBlock->EntityCount];
-							if(FirstBlock->EntityCount == 0)
-							{
-								if(FirstBlock->Next)
-								{
-									world_entity_block *NextBlock = FirstBlock->Next;
-									*FirstBlock = *NextBlock;
+    Assert(!OldP || IsValid(*OldP));
+    Assert(!NewP || IsValid(*NewP));
+    
+    if(OldP && NewP && AreInSameChunk(World, OldP, NewP))
+    {
+        // NOTE(Khisrow): Leave entity where it is
+    }
+    else
+    {
+        if(OldP)
+        {
+            // NOTE(Khisrow): Pull the entity out of its old entity block
+            world_chunk *Chunk = GetWorldChunk(World, OldP->ChunkX, OldP->ChunkY, OldP->ChunkZ);
+            Assert(Chunk);            
+            if(Chunk)
+            {
+                bool32 NotFound = true;
+                world_entity_block *FirstBlock = &Chunk->FirstBlock;
+                for(world_entity_block *Block = FirstBlock;
+                    Block && NotFound;
+                    Block = Block->Next)
+                {
+                    for(uint32 Index = 0;
+                        (Index < Block->EntityCount) && NotFound;
+                        ++Index)
+                    {
+                        if(Block->LowEntityIndex[Index] == LowEntityIndex)
+                        {
+                            Assert(FirstBlock->EntityCount > 0);
+                            Block->LowEntityIndex[Index] =
+                                FirstBlock->LowEntityIndex[--FirstBlock->EntityCount];
+                            if(FirstBlock->EntityCount == 0)
+                            {
+                                if(FirstBlock->Next)
+                                {
+                                    world_entity_block *NextBlock = FirstBlock->Next;
+                                    *FirstBlock = *NextBlock;
+                                    
+                                    NextBlock->Next = World->FirstFree;
+                                    World->FirstFree = NextBlock;
+                                }
+                            }
 
-									NextBlock->Next = World->FirstFree;
-									World->FirstFree = NextBlock;
-								}
-							}
-							
-							NotFound = false;
-						}
-					}
-				}
-			}
-		}
+                            NotFound = false;
+                        }
+                    }    
+                }
+            }
+        }
 
-		if(NewP)
-		{
-			// NOTE: Insert the entity into its new entity block
-			world_chunk *Chunk = GetWorldChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
-			Assert(Chunk);
-			world_entity_block *Block = &Chunk->FirstBlock;
-			if(Block->EntityCount == ArrayCount(Block->LowEntityIndex))
-			{
-				// NOTE: We are out of room, get a new block!
-				world_entity_block *OldBlock = World->FirstFree;
-				if(OldBlock)
-				{
-					World->FirstFree = OldBlock->Next;
-				}
-				else
-				{
-					OldBlock = PushStruct(Arena, world_entity_block);
-				}
-				*OldBlock = *Block;
-				Block->Next = OldBlock;
-				Block->EntityCount = 0;
-			}
+        if(NewP)
+        {
+            // NOTE(Khisrow): Insert the entity into its new entity block
+            world_chunk *Chunk = GetWorldChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
+            Assert(Chunk);
+        
+            world_entity_block *Block = &Chunk->FirstBlock;
+            if(Block->EntityCount == ArrayCount(Block->LowEntityIndex))
+            {
+                // NOTE(Khisrow): We're out of room, get a new block!
+                world_entity_block *OldBlock = World->FirstFree;
+                if(OldBlock)
+                {
+                    World->FirstFree = OldBlock->Next;
+                }
+                else
+                {
+                    OldBlock = PushStruct(Arena, world_entity_block);
+                }
+            
+                *OldBlock = *Block;
+                Block->Next = OldBlock;
+                Block->EntityCount = 0;
+            }
 
-			Assert(Block->EntityCount < ArrayCount(Block->LowEntityIndex));
-			Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
-		}
-	}
+            Assert(Block->EntityCount < ArrayCount(Block->LowEntityIndex));
+            Block->LowEntityIndex[Block->EntityCount++] = LowEntityIndex;
+        }
+    }
 }
 
 internal void
 ChangeEntityLocation(memory_arena *Arena, world *World,
-					 uint32_t LowEntityIndex, low_entity *EntityLow,
-					 world_position NewPInit)
+                     uint32 LowEntityIndex, low_entity *LowEntity,
+                     world_position NewPInit)
 {
-	world_position *OldP = 0;
-	world_position *NewP = 0;
+    world_position *OldP = 0;
+    world_position *NewP = 0;
 
-	if(!IsSet(&EntityLow->Sim, EntityFlag_Nonspatial) && IsValid(EntityLow->P))
-	{
-		OldP = &EntityLow->P;
-	}
+    if(!IsSet(&LowEntity->Sim, EntityFlag_Nonspatial) && IsValid(LowEntity->P))
+    {        
+        OldP = &LowEntity->P;
+    }
+    
+    if(IsValid(NewPInit))
+    {
+        NewP = &NewPInit;
+    }
+    
+    ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
 
-	if(IsValid(NewPInit))
-	{
-		NewP = &NewPInit;
-	}
-	ChangeEntityLocationRaw(Arena, World, LowEntityIndex, OldP, NewP);
-
-	if(NewP)
-	{
-		EntityLow->P = *NewP;
-		ClearFlags(&EntityLow->Sim, EntityFlag_Nonspatial);
-	}
-	else
-	{
-		EntityLow->P = NullPosition();
-		AddFlags(&EntityLow->Sim, EntityFlag_Nonspatial);
-	}
+    if(NewP)
+    {
+        LowEntity->P = *NewP;
+        ClearFlags(&LowEntity->Sim, EntityFlag_Nonspatial);
+    }
+    else
+    {
+        LowEntity->P = NullPosition();
+        AddFlags(&LowEntity->Sim, EntityFlag_Nonspatial);
+    }
 }
+

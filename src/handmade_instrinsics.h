@@ -8,128 +8,146 @@
 
 #if !defined(HANDMADE_INSTRINSICS_H)
 
-// TODO Convert all to intrinsic
-#include "math.h"
-#define Pi32 3.141592653589
+//
+// TODO(Khisrow): Convert all of these to platform-efficient versions
+// and remove math.h
+//
 
-inline int32_t
-SignOf(int32_t Value)
+#include "math.h"
+
+inline int32
+SignOf(int32 Value)
 {
-	return (Value >= 0) ? 1 : -1;
+    int32 Result = (Value >= 0) ? 1 : -1;
+    return(Result);
 }
 
 inline real32
 SquareRoot(real32 Real32)
 {
-	real32 Result = sqrtf(Real32);
-
-	return Result;
+    real32 Result = sqrtf(Real32);
+    return(Result);
 }
 
 inline real32
 AbsoluteValue(real32 Real32)
 {
-	real32 Result = (real32)fabs(Real32);
-	return Result;
+    real32 Result = (real32 )fabs(Real32);
+    return(Result);
 }
 
-inline uint32_t
-RotateLeft(uint32_t Value, int32_t Amount)
+inline uint32
+RotateLeft(uint32 Value, int32 Amount)
 {
 #if COMPILER_MSVC
-	uint32_t Result = _rotl(Value, Amount);
+    uint32 Result = _rotl(Value, Amount);
 #else
-	Amount &= 31;
-	uint32_t Result = ((Value << Amount) | (Value >> (32 - Amount)));
+    // TODO(Khisrow): Actually port this to other compiler platforms!
+    Amount &= 31;
+    uint32 Result = ((Value << Amount) | (Value >> (32 - Amount)));
 #endif
-	return Result;
+
+    return(Result);
 }
 
-inline uint32_t
-RotateRight(uint32_t Value, int32_t Amount)
+inline uint32
+RotateRight(uint32 Value, int32 Amount)
 {
 #if COMPILER_MSVC
-	uint32_t Result = _rotr(Value, Amount);
+    uint32 Result = _rotr(Value, Amount);
 #else
-	Amount &= 31;
-	uint32_t Result = ((Value >> Amount) | (Value << (32 - Amount)));
+    // TODO(Khisrow): Actually port this to other compiler platforms!
+    Amount &= 31;
+    uint32 Result = ((Value >> Amount) | (Value << (32 - Amount)));
 #endif
-	return Result;
+
+    return(Result);
 }
 
-inline int32_t
+inline int32
 RoundReal32ToInt32(real32 Real32)
 {
-	return (int32_t)roundf(Real32);
+    int32 Result = (int32)roundf(Real32);
+    return(Result);
 }
 
-inline uint32_t
+inline uint32
 RoundReal32ToUInt32(real32 Real32)
 {
-	return (uint32_t)roundf(Real32);
+    uint32 Result = (uint32)roundf(Real32);
+    return(Result);
 }
 
-inline int32_t
+inline int32 
 FloorReal32ToInt32(real32 Real32)
 {
-	return (int32_t)floorf(Real32);
+    int32 Result = (int32)floorf(Real32);
+    return(Result);
 }
 
-inline int32_t
+inline int32 
 CeilReal32ToInt32(real32 Real32)
 {
-	return (int32_t)ceilf(Real32);
+    int32 Result = (int32)ceilf(Real32);
+    return(Result);
 }
 
-inline uint32_t
-TruncateReal32ToUInt32(real32 Real32)
+inline int32
+TruncateReal32ToInt32(real32 Real32)
 {
-	return (uint32_t)(Real32);
+    int32 Result = (int32)Real32;
+    return(Result);
 }
 
-inline real32 Sin(real32 Angle)
+inline real32
+Sin(real32 Angle)
 {
-	return sinf(Angle);
+    real32 Result = sinf(Angle);
+    return(Result);
 }
 
-inline real32 Cos(real32 Angle)
+inline real32
+Cos(real32 Angle)
 {
-	return cosf(Angle);
+    real32 Result = cosf(Angle);
+    return(Result);
 }
 
-inline real32 ATan2(real32 Y, real32 X)
+inline real32
+ATan2(real32 Y, real32 X)
 {
-	atan2f(Y, X);
+    real32 Result = atan2f(Y, X);
+    return(Result);
 }
 
 struct bit_scan_result
 {
-	bool32 Found;
-	uint32_t Index;
+    bool32 Found;
+    uint32 Index;
 };
-// TODO move this into the intrinsics and implement the MSVC version of it
 inline bit_scan_result
-FindLeastSignificantSetBit(uint32_t Value)
+FindLeastSignificantSetBit(uint32 Value)
 {
-	bit_scan_result Result = {};
+    bit_scan_result Result = {};
+
 #if COMPILER_MSVC
-	Result.Found = _BitScanForward((unsigned long *)&Result.Index, Value);
+    Result.Found = _BitScanForward((unsigned long *)&Result.Index, Value);
 #else
-	for(uint32_t Test = 0;
-		Test < 32;
-		++Test)
-	{
-		if(Value & (1 << Test))
-		{
-			Result.Index = Test;
-			Result.Found = true;
-			break;
-		}
-	}
+    for(uint32 Test = 0;
+        Test < 32;
+        ++Test)
+    {
+        if(Value & (1 << Test))
+        {
+            Result.Index = Test;
+            Result.Found = true;
+            break;
+        }
+    }
 #endif
-	return Result;
+    
+    return(Result);
 }
 
 #define HANDMADE_INSTRINSICS_H
 #endif
-

@@ -7,12 +7,13 @@
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 inline move_spec
-DefaultMoveSpec()
+DefaultMoveSpec(void)
 {
-	move_spec Result;
-	Result.UnitMaxAccelVector = false;
-	Result.Speed = 1.0f;
-	Result.Drag = 0.0f;
+    move_spec Result;
 
-	return Result;
+    Result.UnitMaxAccelVector = false;
+    Result.Speed = 1.0f;
+    Result.Drag = 0.0f;
+
+    return(Result);
 }
