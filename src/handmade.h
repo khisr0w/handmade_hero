@@ -16,6 +16,15 @@
 	  - Texture
 	- Optimization
 
+	- Asset streaming
+
+	- Debug code
+  	  - Fonts
+  	  - Logging
+	  - Diagramming
+	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
+	  - Thread Visualization
+
 	ARCHITECTURE EXPLORATION
 	- Z!
 	  - Need to make a solid concept of ground levels to the camera
@@ -46,18 +55,10 @@
 	  - Draw tile chunks so we can verify that things are aligned /
 		in the chunks we want them to be in / etc...
 
-	- Debug code
-  	  - Fonts
-  	  - Logging
-	  - Diagramming
-	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
-
 	- Audio
 	  - Sound effect triggers
 	  - Ambient sounds
 	  - Music
-
-	- Asset streaming
 
 	- Metagame / save game?
 	  - How do you enter "save slot"?
