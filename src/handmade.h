@@ -282,6 +282,7 @@ struct transient_state
     memory_arena TranArena;    
     uint32 GroundBufferCount;
     ground_buffer *GroundBuffers;
+	platform_work_queue *RenderQueue;
 
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
@@ -301,6 +302,9 @@ GetLowEntity(game_state *GameState, uint32 Index)
 
     return(Result);
 }
+
+global_var platform_add_entry *PlatformAddEntry;
+global_var platform_complete_all_work *PlatformCompleteAllWork;
 
 #define HANDMADE_H
 #endif
