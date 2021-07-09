@@ -123,7 +123,7 @@ V2i(int32 X, int32 Y)
 {
     v2 Result = {(real32)X, (real32)Y};
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -131,7 +131,7 @@ V2i(uint32 X, uint32 Y)
 {
     v2 Result = {(real32)X, (real32)Y};
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -142,7 +142,7 @@ V2(real32 X, real32 Y)
     Result.x = X;
     Result.y = Y;
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -154,7 +154,7 @@ V3(real32 X, real32 Y, real32 Z)
     Result.y = Y;
     Result.z = Z;
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -166,7 +166,7 @@ V3(v2 XY, real32 Z)
     Result.y = XY.y;
     Result.z = Z;
 
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -179,7 +179,7 @@ V4(real32 X, real32 Y, real32 Z, real32 W)
     Result.z = Z;
     Result.w = W;
 
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -190,7 +190,7 @@ V4(v3 XYZ, real32 W)
     Result.xyz = XYZ;
     Result.w = W;
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -202,7 +202,7 @@ Square(real32 A)
 {
     real32 Result = A*A;
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -210,7 +210,7 @@ Lerp(real32 A, real32 t, real32 B)
 {
     real32 Result = (1.0f - t)*A + t*B;
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -227,7 +227,7 @@ Clamp(real32 Min, real32 Value, real32 Max)
         Result = Max;
     }
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -235,7 +235,7 @@ Clamp01(real32 Value)
 {
     real32 Result = Clamp(0.0f, Value, 1.0f);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -249,7 +249,7 @@ Clamp01MapToRange(real32 Min, real32 t, real32 Max)
         Result = Clamp01((t - Min) / Range);
     }
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -262,7 +262,7 @@ SafeRatioN(real32 Numerator, real32 Divisor, real32 N)
         Result = Numerator / Divisor;
     }
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -270,7 +270,7 @@ SafeRatio0(real32 Numerator, real32 Divisor)
 {
     real32 Result = SafeRatioN(Numerator, Divisor, 0.0f);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -278,7 +278,7 @@ SafeRatio1(real32 Numerator, real32 Divisor)
 {
     real32 Result = SafeRatioN(Numerator, Divisor, 1.0f);
 
-    return(Result);
+    return Result;
 }
     
 //
@@ -289,7 +289,7 @@ inline v2
 Perp(v2 A)
 {
     v2 Result = {-A.y, A.x};
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -300,7 +300,7 @@ operator*(real32 A, v2 B)
     Result.x = A*B.x;
     Result.y = A*B.y;
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -308,7 +308,7 @@ operator*(v2 B, real32 A)
 {
     v2 Result = A*B;
 
-    return(Result);
+    return Result;
 }
 
 inline v2 &
@@ -316,7 +316,7 @@ operator*=(v2 &B, real32 A)
 {
     B = A * B;
 
-    return(B);
+    return B;
 }
 
 inline v2
@@ -327,7 +327,7 @@ operator-(v2 A)
     Result.x = -A.x;
     Result.y = -A.y;
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -338,7 +338,7 @@ operator+(v2 A, v2 B)
     Result.x = A.x + B.x;
     Result.y = A.y + B.y;
 
-    return(Result);
+    return Result;
 }
 
 inline v2 &
@@ -346,7 +346,7 @@ operator+=(v2 &A, v2 B)
 {
     A = A + B;
 
-    return(A);
+    return A;
 }
 
 inline v2
@@ -357,7 +357,7 @@ operator-(v2 A, v2 B)
     Result.x = A.x - B.x;
     Result.y = A.y - B.y;
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -365,7 +365,7 @@ Hadamard(v2 A, v2 B)
 {
     v2 Result = {A.x*B.x, A.y*B.y};
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -373,7 +373,7 @@ Inner(v2 A, v2 B)
 {
     real32 Result = A.x*B.x + A.y*B.y;
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -381,14 +381,14 @@ LengthSq(v2 A)
 {
     real32 Result = Inner(A, A);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
 Length(v2 A)
 {
     real32 Result = SquareRoot(LengthSq(A));
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -399,7 +399,7 @@ Clamp01(v2 Value)
     Result.x = Clamp01(Value.x);
     Result.y = Clamp01(Value.y);
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -415,7 +415,7 @@ operator*(real32 A, v3 B)
     Result.y = A*B.y;
     Result.z = A*B.z;
     
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -423,7 +423,7 @@ operator*(v3 B, real32 A)
 {
     v3 Result = A*B;
 
-    return(Result);
+    return Result;
 }
 
 inline v3 &
@@ -431,7 +431,7 @@ operator*=(v3 &B, real32 A)
 {
     B = A * B;
 
-    return(B);
+    return B;
 }
 
 inline v3
@@ -443,7 +443,7 @@ operator-(v3 A)
     Result.y = -A.y;
     Result.z = -A.z;
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -455,7 +455,7 @@ operator+(v3 A, v3 B)
     Result.y = A.y + B.y;
     Result.z = A.z + B.z;
 
-    return(Result);
+    return Result;
 }
 
 inline v3 &
@@ -463,7 +463,7 @@ operator+=(v3 &A, v3 B)
 {
     A = A + B;
 
-    return(A);
+    return A;
 }
 
 inline v3
@@ -475,7 +475,7 @@ operator-(v3 A, v3 B)
     Result.y = A.y - B.y;
     Result.z = A.z - B.z;
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -483,7 +483,7 @@ Hadamard(v3 A, v3 B)
 {
     v3 Result = {A.x*B.x, A.y*B.y, A.z*B.z};
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -491,7 +491,7 @@ Inner(v3 A, v3 B)
 {
     real32 Result = A.x*B.x + A.y*B.y + A.z*B.z;
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -499,14 +499,14 @@ LengthSq(v3 A)
 {
     real32 Result = Inner(A, A);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
 Length(v3 A)
 {
     real32 Result = SquareRoot(LengthSq(A));
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -514,7 +514,7 @@ Normalize(v3 A)
 {
     v3 Result = A * (1.0f / Length(A));
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -526,7 +526,7 @@ Clamp01(v3 Value)
     Result.y = Clamp01(Value.y);
     Result.z = Clamp01(Value.z);
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -534,7 +534,7 @@ Lerp(v3 A, real32 t, v3 B)
 {
     v3 Result = (1.0f - t)*A + t*B;
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -551,7 +551,7 @@ operator*(real32 A, v4 B)
     Result.z = A*B.z;
     Result.w = A*B.w;
     
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -559,7 +559,7 @@ operator*(v4 B, real32 A)
 {
     v4 Result = A*B;
 
-    return(Result);
+    return Result;
 }
 
 inline v4 &
@@ -567,7 +567,7 @@ operator*=(v4 &B, real32 A)
 {
     B = A * B;
 
-    return(B);
+    return B;
 }
 
 inline v4
@@ -580,7 +580,7 @@ operator-(v4 A)
     Result.z = -A.z;
     Result.w = -A.w;
 
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -593,7 +593,7 @@ operator+(v4 A, v4 B)
     Result.z = A.z + B.z;
     Result.w = A.w + B.w;
 
-    return(Result);
+    return Result;
 }
 
 inline v4 &
@@ -601,7 +601,7 @@ operator+=(v4 &A, v4 B)
 {
     A = A + B;
 
-    return(A);
+    return A;
 }
 
 inline v4
@@ -614,7 +614,7 @@ operator-(v4 A, v4 B)
     Result.z = A.z - B.z;
     Result.w = A.w - B.w;
 
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -622,7 +622,7 @@ Hadamard(v4 A, v4 B)
 {
     v4 Result = {A.x*B.x, A.y*B.y, A.z*B.z, A.w*B.w};
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -630,7 +630,7 @@ Inner(v4 A, v4 B)
 {
     real32 Result = A.x*B.x + A.y*B.y + A.z*B.z + A.w*B.w;
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -638,14 +638,14 @@ LengthSq(v4 A)
 {
     real32 Result = Inner(A, A);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
 Length(v4 A)
 {
     real32 Result = SquareRoot(LengthSq(A));
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -658,7 +658,7 @@ Clamp01(v4 Value)
     Result.z = Clamp01(Value.z);
     Result.w = Clamp01(Value.w);
 
-    return(Result);
+    return Result;
 }
 
 inline v4
@@ -666,7 +666,7 @@ Lerp(v4 A, real32 t, v4 B)
 {
     v4 Result = (1.0f - t)*A + t*B;
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -677,28 +677,28 @@ inline v2
 GetMinCorner(rectangle2 Rect)
 {
     v2 Result = Rect.Min;
-    return(Result);
+    return Result;
 }
 
 inline v2
 GetMaxCorner(rectangle2 Rect)
 {
     v2 Result = Rect.Max;
-    return(Result);
+    return Result;
 }
 
 inline v2
 GetDim(rectangle2 Rect)
 {
     v2 Result = Rect.Max - Rect.Min;
-    return(Result);
+    return Result;
 }
 
 inline v2
 GetCenter(rectangle2 Rect)
 {
     v2 Result = 0.5f*(Rect.Min + Rect.Max);
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -709,7 +709,7 @@ RectMinMax(v2 Min, v2 Max)
     Result.Min = Min;
     Result.Max = Max;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -720,7 +720,7 @@ RectMinDim(v2 Min, v2 Dim)
     Result.Min = Min;
     Result.Max = Min + Dim;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -731,7 +731,7 @@ RectCenterHalfDim(v2 Center, v2 HalfDim)
     Result.Min = Center - HalfDim;
     Result.Max = Center + HalfDim;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -741,7 +741,7 @@ AddRadiusTo(rectangle2 A, v2 Radius)
     Result.Min = A.Min - Radius;
     Result.Max = A.Max + Radius;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -749,7 +749,7 @@ RectCenterDim(v2 Center, v2 Dim)
 {
     rectangle2 Result = RectCenterHalfDim(Center, 0.5f*Dim);
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -760,7 +760,7 @@ IsInRectangle(rectangle2 Rectangle, v2 Test)
                      (Test.x < Rectangle.Max.x) &&
                      (Test.y < Rectangle.Max.y));
 
-    return(Result);
+    return Result;
 }
 
 inline v2
@@ -771,7 +771,7 @@ GetBarycentric(rectangle2 A, v2 P)
     Result.x = SafeRatio0(P.x - A.Min.x, A.Max.x - A.Min.x);
     Result.y = SafeRatio0(P.y - A.Min.y, A.Max.y - A.Min.y);
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -782,28 +782,28 @@ inline v3
 GetMinCorner(rectangle3 Rect)
 {
     v3 Result = Rect.Min;
-    return(Result);
+    return Result;
 }
 
 inline v3
 GetMaxCorner(rectangle3 Rect)
 {
     v3 Result = Rect.Max;
-    return(Result);
+    return Result;
 }
 
 inline v3
 GetDim(rectangle3 Rect)
 {
     v3 Result = Rect.Max - Rect.Min;
-    return(Result);
+    return Result;
 }
 
 inline v3
 GetCenter(rectangle3 Rect)
 {
     v3 Result = 0.5f*(Rect.Min + Rect.Max);
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -814,7 +814,7 @@ RectMinMax(v3 Min, v3 Max)
     Result.Min = Min;
     Result.Max = Max;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -825,7 +825,7 @@ RectMinDim(v3 Min, v3 Dim)
     Result.Min = Min;
     Result.Max = Min + Dim;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -836,7 +836,7 @@ RectCenterHalfDim(v3 Center, v3 HalfDim)
     Result.Min = Center - HalfDim;
     Result.Max = Center + HalfDim;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -847,7 +847,7 @@ AddRadiusTo(rectangle3 A, v3 Radius)
     Result.Min = A.Min - Radius;
     Result.Max = A.Max + Radius;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -858,7 +858,7 @@ Offset(rectangle3 A, v3 Offset)
     Result.Min = A.Min + Offset;
     Result.Max = A.Max + Offset;
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle3
@@ -866,7 +866,7 @@ RectCenterDim(v3 Center, v3 Dim)
 {
     rectangle3 Result = RectCenterHalfDim(Center, 0.5f*Dim);
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -879,7 +879,7 @@ IsInRectangle(rectangle3 Rectangle, v3 Test)
                      (Test.y < Rectangle.Max.y) &&
                      (Test.z < Rectangle.Max.z));
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -891,7 +891,7 @@ RectanglesIntersect(rectangle3 A, rectangle3 B)
                       (B.Min.y >= A.Max.y) ||
                       (B.Max.z <= A.Min.z) ||
                       (B.Min.z >= A.Max.z));
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -903,7 +903,7 @@ GetBarycentric(rectangle3 A, v3 P)
     Result.y = SafeRatio0(P.y - A.Min.y, A.Max.y - A.Min.y);
     Result.z = SafeRatio0(P.z - A.Min.z, A.Max.z - A.Min.z);
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2
@@ -914,7 +914,7 @@ ToRectangleXY(rectangle3 A)
     Result.Min = A.Min.xy;
     Result.Max = A.Max.xy;
 
-    return(Result);
+    return Result;
 }
 
 //
@@ -937,7 +937,7 @@ Intersect(rectangle2i A, rectangle2i B)
     Result.MaxX = (A.MaxX > B.MaxX) ? B.MaxX : A.MaxX;
     Result.MaxY = (A.MaxY > B.MaxY) ? B.MaxY : A.MaxY;    
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2i
@@ -950,7 +950,7 @@ Union(rectangle2i A, rectangle2i B)
     Result.MaxX = (A.MaxX > B.MaxX) ? A.MaxX : B.MaxX;
     Result.MaxY = (A.MaxY > B.MaxY) ? A.MaxY : B.MaxY;
 
-    return(Result);
+    return Result;
 }
 
 inline int32
@@ -964,7 +964,7 @@ GetClampedRectArea(rectangle2i A)
         Result = Width*Height;
     }
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -972,7 +972,7 @@ HasArea(rectangle2i A)
 {
     bool32 Result = ((A.MinX < A.MaxX) && (A.MinY < A.MaxY));
 
-    return(Result);
+    return Result;
 }
 
 inline rectangle2i
@@ -983,7 +983,7 @@ InvertedInfinityRectangle(void)
     Result.MinX = Result.MinY = INT_MAX;
     Result.MaxX = Result.MaxY = -INT_MAX;
 
-    return(Result);
+    return Result;
 }
 
 #define HANDMADE_MATH_H

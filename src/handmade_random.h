@@ -538,7 +538,7 @@ inline random_series RandomSeed(uint32 Value)
 
     Series.Index = (Value % ArrayCount(RandomNumberTable));
 
-    return(Series);
+    return Series;
 }
 
 inline uint32 RandomNextUInt32(random_series *Series)
@@ -549,14 +549,14 @@ inline uint32 RandomNextUInt32(random_series *Series)
         Series->Index = 0;
     }
 
-    return(Result);
+    return Result;
 }
 
 inline uint32 RandomChoice(random_series *Series, uint32 ChoiceCount)
 {
     uint32 Result = (RandomNextUInt32(Series) % ChoiceCount);
     
-    return(Result);
+    return Result;
 }
 
 inline real32 RandomUnilateral(random_series *Series)
@@ -564,28 +564,28 @@ inline real32 RandomUnilateral(random_series *Series)
     real32 Divisor = 1.0f / (real32)MaxRandomNumber;
     real32 Result = Divisor*(real32)RandomNextUInt32(Series);
 
-    return(Result);
+    return Result;
 }
 
 inline real32 RandomBilateral(random_series *Series)
 {
     real32 Result = 2.0f*RandomUnilateral(Series) - 1.0f;
 
-    return(Result);
+    return Result;
 }
 
 inline real32 RandomBetween(random_series *Series, real32 Min, real32 Max)
 {
     real32 Result = Lerp(Min, RandomUnilateral(Series), Max);
 
-    return(Result);
+    return Result;
 }
 
 inline int32 RandomBetween(random_series *Series, int32 Min, int32 Max)
 {
     int32 Result = Min + (int32)(RandomNextUInt32(Series)%((Max + 1) - Min));
 
-    return(Result);
+    return Result;
 }
 
 #define HANDMADE_RANDOM_H

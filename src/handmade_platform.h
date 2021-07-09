@@ -116,7 +116,7 @@ SafeTruncateUInt64(uint64 Value)
     // TODO(Khisrow): Defines for maximum values
     Assert(Value <= 0xFFFFFFFF);
     uint32 Result = (uint32)Value;
-    return(Result);
+    return Result;
 }
 
 typedef struct thread_context
@@ -301,7 +301,7 @@ inline game_controller_input *GetController(game_input *Input, int unsigned Cont
     Assert(ControllerIndex < ArrayCount(Input->Controllers));
     
     game_controller_input *Result = &Input->Controllers[ControllerIndex];
-    return(Result);
+    return Result;
 }
 
 #ifdef __cplusplus

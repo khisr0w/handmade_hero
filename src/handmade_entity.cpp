@@ -15,5 +15,5 @@ DefaultMoveSpec(void)
     Result.Speed = 1.0f;
     Result.Drag = 0.0f;
 
-    return(Result);
+    return Result;
 }

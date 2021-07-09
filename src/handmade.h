@@ -10,11 +10,13 @@
 	TODO:
 
 	- Rendering
-	- Straighten out all coordinate systems
-	  - Screen
-	  - World
-	  - Texture
-	- Optimization
+		- Straighten out all coordinate systems
+		  - Screen
+		  - World
+		  - Texture
+		- Particle Systems
+		- Lighting
+		- Final Optimization
 
 	- Asset streaming
 
@@ -25,6 +27,12 @@
 	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
 	  - Thread Visualization
 
+	- Audio
+	  - Sound effect triggers
+	  - Ambient sounds
+	  - Music
+
+	- Metagame / save game?
 	ARCHITECTURE EXPLORATION
 	- Z!
 	  - Need to make a solid concept of ground levels to the camera
@@ -55,12 +63,6 @@
 	  - Draw tile chunks so we can verify that things are aligned /
 		in the chunks we want them to be in / etc...
 
-	- Audio
-	  - Sound effect triggers
-	  - Ambient sounds
-	  - Music
-
-	- Metagame / save game?
 	  - How do you enter "save slot"?
 	  - Persistent unlocks/etc.
 	  - Do we allow saved games? Probably yes, just only for "pausing",
@@ -132,7 +134,7 @@ PushSize_(memory_arena *Arena, memory_index Size)
     void *Result = Arena->Base + Arena->Used;
     Arena->Used += Size;
     
-    return(Result);
+    return Result;
 }
 
 inline temporary_memory
@@ -145,7 +147,7 @@ BeginTemporaryMemory(memory_arena *Arena)
 
     ++Arena->TempCount;
 
-    return(Result);
+    return Result;
 }
 
 inline void
@@ -300,7 +302,7 @@ GetLowEntity(game_state *GameState, uint32 Index)
         Result = GameState->LowEntities + Index;
     }
 
-    return(Result);
+    return Result;
 }
 
 global_var platform_add_entry *PlatformAddEntry;

@@ -28,7 +28,7 @@ GetHashFromStorageIndex(sim_region *SimRegion, uint32 StorageIndex)
         }
     }
     
-    return(Result);
+    return Result;
 }
 
 inline sim_entity *
@@ -36,7 +36,7 @@ GetEntityByStorageIndex(sim_region *SimRegion, uint32 StorageIndex)
 {
     sim_entity_hash *Entry = GetHashFromStorageIndex(SimRegion, StorageIndex);
     sim_entity *Result = Entry->Ptr;
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -52,7 +52,7 @@ GetSimSpaceP(sim_region *SimRegion, low_entity *Stored)
         Result = Subtract(SimRegion->World, &Stored->P, &SimRegion->Origin);
     }
 
-    return(Result);
+    return Result;
 }
 
 internal sim_entity *
@@ -120,7 +120,7 @@ AddEntityRaw(game_state *GameState, sim_region *SimRegion, uint32 StorageIndex, 
         }
     }
     
-    return(Entity);
+    return Entity;
 }
 
 inline bool32
@@ -128,7 +128,7 @@ EntityOverlapsRectangle(v3 P, sim_entity_collision_volume Volume, rectangle3 Rec
 {
     rectangle3 Grown = AddRadiusTo(Rect, 0.5f*Volume.Dim);
     bool32 Result = IsInRectangle(Grown, P + Volume.OffsetP);
-    return(Result);
+    return Result;
 }
 
 internal sim_entity *
@@ -148,7 +148,7 @@ AddEntity(game_state *GameState, sim_region *SimRegion, uint32 StorageIndex, low
         }
     }
 
-    return(Dest);
+    return Dest;
 }
 
 internal sim_region *
@@ -224,7 +224,7 @@ BeginSim(memory_arena *SimArena, game_state *GameState, world *World, world_posi
         }
     }
     
-    return(SimRegion);
+    return SimRegion;
 }
 
 internal void
@@ -322,7 +322,7 @@ TestWall(real32 WallX, real32 RelX, real32 RelY, real32 PlayerDeltaX, real32 Pla
         }
     }
 
-    return(Hit);
+    return Hit;
 }
 
 internal bool32
@@ -364,7 +364,7 @@ CanCollide(game_state *GameState, sim_entity *A, sim_entity *B)
         }
     }
     
-    return(Result);
+    return Result;
 }
 
 internal bool32
@@ -401,7 +401,7 @@ HandleCollision(game_state *GameState, sim_entity *A, sim_entity *B)
     // TODO(Khisrow): Stairs
 //            Entity->AbsTileZ += HitLow->dAbsTileZ;
 
-    return(StopsOnCollision);
+    return StopsOnCollision;
 }
 
 internal bool32
@@ -417,7 +417,7 @@ CanOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region)
         }
     }
 
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -448,7 +448,7 @@ SpeculativeCollide(sim_entity *Mover, sim_entity *Region, v3 TestP)
         Result = (AbsoluteValue(MoverGroundPoint.z - Ground) > StepHeight);
     }
 
-    return(Result);
+    return Result;
 }
 
 internal bool32
@@ -474,7 +474,7 @@ EntitiesOverlap(sim_entity *Entity, sim_entity *TestEntity, v3 Epsilon = V3(0, 0
         }
     }
 
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -563,7 +563,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
                     
                     if((IsSet(TestEntity, EntityFlag_Traversable) &&
                         EntitiesOverlap(Entity, TestEntity, OverlapEpsilon*V3(1, 1, 1))) ||
-                       CanCollide(GameState, Entity, TestEntity))
+						CanCollide(GameState, Entity, TestEntity))
                     {
                         for(uint32 VolumeIndex = 0;
                             VolumeIndex < Entity->Collision->VolumeCount;

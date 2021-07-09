@@ -15,7 +15,7 @@ IsSet(sim_entity *Entity, uint32 Flag)
 {
     bool32 Result = Entity->Flags & Flag;
 
-    return(Result);
+    return Result;
 }
 
 inline void
@@ -50,7 +50,7 @@ GetEntityGroundPoint(sim_entity *Entity, v3 ForEntityP)
 {
     v3 Result = ForEntityP;
 
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -58,7 +58,7 @@ GetEntityGroundPoint(sim_entity *Entity)
 {
     v3 Result = GetEntityGroundPoint(Entity, Entity->P);
 
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -70,7 +70,7 @@ GetStairGround(sim_entity *Entity, v3 AtGroundPoint)
     v2 Bary = Clamp01(GetBarycentric(RegionRect, AtGroundPoint.xy));
     real32 Result = Entity->P.z + Bary.y*Entity->WalkableHeight;
 
-    return(Result);
+    return Result;
 }
 
 #define HANDMADE_ENTITY_H

@@ -19,14 +19,14 @@ NullPosition(void)
 
     Result.ChunkX = TILE_CHUNK_UNINITIALIZED;
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
 IsValid(world_position P)
 {
     bool32 Result = (P.ChunkX != TILE_CHUNK_UNINITIALIZED);
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -37,7 +37,7 @@ IsCanonical(real32 ChunkDim, real32 TileRel)
     bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
                      (TileRel <= (0.5f*ChunkDim + Epsilon)));
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -47,7 +47,7 @@ IsCanonical(world *World, v3 Offset)
                      IsCanonical(World->ChunkDimInMeters.y, Offset.y) &&
                      IsCanonical(World->ChunkDimInMeters.z, Offset.z));
 
-    return(Result);
+    return Result;
 }
 
 inline bool32
@@ -60,7 +60,7 @@ AreInSameChunk(world *World, world_position *A, world_position *B)
                      (A->ChunkY == B->ChunkY) &&
                      (A->ChunkZ == B->ChunkZ));
 
-    return(Result);
+    return Result;
 }
 
 inline world_chunk *
@@ -109,7 +109,7 @@ GetWorldChunk(world *World, int32 ChunkX, int32 ChunkY, int32 ChunkZ,
         Chunk = Chunk->NextInHash;
     } while(Chunk);
     
-    return(Chunk);
+    return Chunk;
 }
 
 internal void
@@ -155,7 +155,7 @@ MapIntoChunkSpace(world *World, world_position BasePos, v3 Offset)
     RecanonicalizeCoord(World->ChunkDimInMeters.y, &Result.ChunkY, &Result.Offset_.y);
     RecanonicalizeCoord(World->ChunkDimInMeters.z, &Result.ChunkZ, &Result.Offset_.z);
     
-    return(Result);
+    return Result;
 }
 
 inline v3
@@ -167,7 +167,7 @@ Subtract(world *World, world_position *A, world_position *B)
     
     v3 Result = Hadamard(World->ChunkDimInMeters, dTile) + (A->Offset_ - B->Offset_);
 
-    return(Result);
+    return Result;
 }
 
 inline world_position
@@ -179,7 +179,7 @@ CenteredChunkPoint(uint32 ChunkX, uint32 ChunkY, uint32 ChunkZ)
     Result.ChunkY = ChunkY;
     Result.ChunkZ = ChunkZ;
 
-    return(Result);
+    return Result;
 }
 
 inline world_position
@@ -187,7 +187,7 @@ CenteredChunkPoint(world_chunk *Chunk)
 {
     world_position Result = CenteredChunkPoint(Chunk->ChunkX, Chunk->ChunkY, Chunk->ChunkZ);
 
-    return(Result);
+    return Result;
 }
 
 inline void

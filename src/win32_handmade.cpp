@@ -51,7 +51,7 @@ global_var WINDOWPLACEMENT GlobalWindowPosition = {sizeof(GlobalWindowPosition)}
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-    return(ERROR_DEVICE_NOT_CONNECTED);
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_var x_input_get_state *XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
@@ -61,7 +61,7 @@ global_var x_input_get_state *XInputGetState_ = XInputGetStateStub;
 typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-    return(ERROR_DEVICE_NOT_CONNECTED);
+    return ERROR_DEVICE_NOT_CONNECTED;
 }
 global_var x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
@@ -119,7 +119,7 @@ StringLength(char *String)
     {
         ++Count;
     }
-    return(Count);
+    return Count;
 }
 
 internal void
@@ -184,7 +184,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(DEBUGPlatformReadEntireFile)
         // TODO(Khisrow): Logging
     }
 
-    return(Result);
+    return Result;
 }
 
 DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
@@ -212,7 +212,7 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(DEBUGPlatformWriteEntireFile)
         // TODO(Khisrow): Logging
     }
 
-    return(Result);
+    return Result;
 }
 
 inline FILETIME
@@ -226,7 +226,7 @@ Win32GetLastWriteTime(char *Filename)
         LastWriteTime = Data.ftLastWriteTime;
     }
 
-    return(LastWriteTime);
+    return LastWriteTime;
 }
 
 internal win32_game_code
@@ -261,7 +261,7 @@ Win32LoadGameCode(char *SourceDLLName, char *TempDLLName, char *LockFileName)
         Result.GetSoundSamples = 0;
     }
 
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -401,7 +401,7 @@ Win32GetWindowDimension(HWND Window)
     Result.Width = ClientRect.right - ClientRect.left;
     Result.Height = ClientRect.bottom - ClientRect.top;
 
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -553,7 +553,7 @@ Win32MainWindowCallback(HWND Window,
         } break;
     }
     
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -666,7 +666,7 @@ Win32ProcessXInputStickValue(SHORT Value, SHORT DeadZoneThreshold)
         Result = (real32)((Value - DeadZoneThreshold) / (32767.0f - DeadZoneThreshold));
     }
 
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -684,7 +684,7 @@ Win32GetReplayBuffer(win32_state *State, int unsigned Index)
     Assert(Index > 0);
     Assert(Index < ArrayCount(State->ReplayBuffers));
     win32_replay_buffer *Result = &State->ReplayBuffers[Index];
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -940,7 +940,7 @@ Win32GetWallClock(void)
 {    
     LARGE_INTEGER Result;
     QueryPerformanceCounter(&Result);
-    return(Result);
+    return Result;
 }
 
 inline real32
@@ -948,7 +948,7 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 {
     real32 Result = ((real32)(End.QuadPart - Start.QuadPart) /
                      (real32)GlobalPerfCountFrequency);
-    return(Result);
+    return Result;
 }
 
 internal void
@@ -1856,5 +1856,5 @@ WinMain(HINSTANCE Instance,
         // TODO(Khisrow): Logging
     }
     
-    return(0);
+    return 0;
 }
