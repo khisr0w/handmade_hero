@@ -316,11 +316,8 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                 v2 ScreenSpaceUV = {InvWidthMax*(real32)X, InvHeightMax*(real32)Y};
                 real32 ZDiff = 0.0f;
 #endif
-
-                
                 real32 U = InvXAxisLengthSq*Inner(d, XAxis);
                 real32 V = InvYAxisLengthSq*Inner(d, YAxis);
-
 #if 0
                 // TODO(Khisrow): SSE clamping.
                 Assert((U >= 0.0f) && (U <= 1.0f));
@@ -342,7 +339,6 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 
                 bilinear_sample TexelSample = BilinearSample(Texture, X, Y);
                 v4 Texel = SRGBBilinearBlend(TexelSample, fX, fY);
-
 #if 0
                 if(NormalMap)
                 {
@@ -550,6 +546,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
         real32 One255 = 255.0f;
 
         __m128 One = _mm_set1_ps(1.0f);
+        __m128 Half = _mm_set1_ps(0.5f);
         __m128 Four_4x = _mm_set1_ps(4.0f);
         __m128 One255_4x = _mm_set1_ps(255.0f);
         __m128 Zero = _mm_set1_ps(0.0f);
@@ -630,9 +627,10 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     U = _mm_min_ps(_mm_max_ps(U, Zero), One);
                     V = _mm_min_ps(_mm_max_ps(V, Zero), One);
 
-                    // TODO(Khisrow): Formalize texture boundaries!!!
-                    __m128 tX = _mm_mul_ps(U, WidthM2);
-                    __m128 tY = _mm_mul_ps(V, HeightM2);
+					// NOTE(Khisrow): Bias texture coordinates to start on the boundary
+					// between the (0, 0) and (1, 1) pixels.
+                    __m128 tX = _mm_add_ps(_mm_mul_ps(U, WidthM2), Half);
+                    __m128 tY = _mm_add_ps(_mm_mul_ps(V, HeightM2), Half);
                 
                     __m128i FetchX_4x = _mm_cvttps_epi32(tX);
                     __m128i FetchY_4x = _mm_cvttps_epi32(tY);
@@ -1272,7 +1270,7 @@ GetRenderEntityBasisP(render_transform *Transform, v3 OriginalP)
 		real32 OffsetZ = 0.0f;
 
 		real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
-#if 0
+#if 1
 		// TODO(Khisrow): How do we want to control the debug camera?
 		if(1) DistanceAboveTarget += 50.0f;
 #endif
