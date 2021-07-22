@@ -15,6 +15,12 @@
 
 #include "math.h"
 
+#if COMPILER_MSVC
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
+#else
+	// TODO(Khisrow); Need to define these on GCC and LLVM(clang)
+#endif
+
 inline int32
 SignOf(int32 Value)
 {
