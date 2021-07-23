@@ -547,7 +547,7 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 		v2 HalfDim = 0.5f*V2(Width, Height);
 
 		// TODO(Khisrow): Decide what our pushbuffer size is!
-		render_group *RenderGroup = AllocateRenderGroup(&Task->Arena, 0); // (uint32)GetArenaSizeRemaining(&Task->Arena));
+		render_group *RenderGroup = AllocateRenderGroup(&TranState->Assets, &Task->Arena, 0); // (uint32)GetArenaSizeRemaining(&Task->Arena));
 		Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (Buffer->Width - 2) / Width);
 		Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
 
@@ -581,11 +581,11 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 					loaded_bitmap *Stamp;
 					if(RandomChoice(&Series, 2))
 					{
-						Stamp = GameState->Grass + RandomChoice(&Series, ArrayCount(GameState->Grass));
+						Stamp = TranState->Assets.Grass + RandomChoice(&Series, ArrayCount(TranState->Assets.Grass));
 					}
 					else
 					{
-						Stamp = GameState->Stone + RandomChoice(&Series, ArrayCount(GameState->Stone));
+						Stamp = TranState->Assets.Stone + RandomChoice(&Series, ArrayCount(TranState->Assets.Stone));
 					}
 
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
@@ -616,7 +616,7 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 					GrassIndex < 50;
 					++GrassIndex)
 				{
-					loaded_bitmap *Stamp = GameState->Tuft + RandomChoice(&Series, ArrayCount(GameState->Tuft));
+					loaded_bitmap *Stamp = TranState->Assets.Tuft + RandomChoice(&Series, ArrayCount(TranState->Assets.Tuft));
 
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
 					PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0.0f));
@@ -819,6 +819,79 @@ SetTopDownAlign(hero_bitmaps *Bitmap, v2 Align)
     Bitmap->Torso.AlignPercentage = Align;
 }
 
+struct load_asset_work
+{
+	game_assets *Assets;
+	char *FileName;
+	game_assets_id ID;
+	task_with_memory *Task;
+	loaded_bitmap *Bitmap;
+};
+internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork)
+{
+	load_asset_work *Work = (load_asset_work *)Data;
+
+	// TODO(Khisrow): Get rid of this thread_context thing when i load through a queue instead of the debug call
+	thread_context *Thread = 0;
+	*Work->Bitmap = DEBUGLoadBMP(Thread, Work->Assets->ReadEntireFile, Work->FileName);
+	// AlignX, TopDownAlignY);
+
+	// TODO(Khisrow): Memory Fence Here!
+
+	Work->Assets->Bitmaps[Work->ID] = Work->Bitmap;
+	EndTaskWithMemory(Work->Task);
+}
+
+internal void
+LoadAsset(game_assets *Assets, game_assets_id ID)
+{
+	task_with_memory *Task = BeginTaskWithMemory(Assets->TranState);
+	if(Task)
+	{
+		debug_platform_read_entire_file *ReadEntireFile = Assets->ReadEntireFile;
+
+		load_asset_work *Work = PushStruct(&Task->Arena, load_asset_work);
+
+		Work->Assets = Assets;
+		Work->ID = ID;
+		Work->FileName = "";
+		Work->Task = Task;
+		Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
+
+		// TODO(Khisrow): Get rid of this thread_context thing when i load through a queue instead of the debug call
+		thread_context *Thread = 0;
+		switch(ID)
+		{
+			case GAI_Backdrop:
+			{
+				Work->FileName = "handmade_hero_legacy_art/early_data/test/test_background.bmp";
+			} break;
+			case GAI_Shadow:
+			{
+				Work->FileName = "handmade_hero_legacy_art/early_data/test/test_hero_shadow.bmp";
+				// 72, 182
+			} break;
+			case GAI_Tree:
+			{
+				Work->FileName = "handmade_hero_legacy_art/early_data/test2/tree00.bmp";
+				// 40, 80
+			} break;
+			case GAI_Sword:
+			{
+				Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock03.bmp";
+			} break;
+			case GAI_Stairwell:
+			{
+				Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock02.bmp";
+				// 29, 10
+			} break;
+		}
+
+		// NOTE(Khisrow): WARNING(Khisrow): Should be before switch?
+		PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
+	}
+}
+
 #if HANDMADE_INTERNAL
 game_memory *DebugGlobalMemory;
 #endif
@@ -885,68 +958,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                                                        TilesPerHeight*TileSideInMeters,
                                                                        0.9f*TileDepthInMeters);
 
-		GameState->Grass[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/grass00.bmp");
-		GameState->Grass[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/grass01.bmp");
-
-		GameState->Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground00.bmp");
-		GameState->Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground01.bmp");
-		GameState->Stone[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground02.bmp");
-		GameState->Stone[3] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground03.bmp");
-
-		GameState->Tuft[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
-		GameState->Tuft[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
-		GameState->Tuft[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
-
-		GameState->Backdrop = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test/test_background.bmp");
-
-		GameState->Shadow = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test/test_hero_shadow.bmp", 72 ,182);
-
-		GameState->Tree = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tree00.bmp", 40, 80);
-
-		GameState->Sword = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/rock03.bmp", 29, 10);
-
-		GameState->Stairwell = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/rock02.bmp");
-
-		hero_bitmaps *Bitmap;
-
-		Bitmap = GameState->HeroBitmaps;
-		Bitmap-> Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
 
 		random_series Series = RandomSeed(1234);
         
@@ -987,14 +998,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 CreatedZDoor = true;
                 DoorUp = true;
             }
-            else if(DoorDirection == 1)
-            {
-                DoorRight = true;
-            }
-            else
-            {
-                DoorTop = true;
-            }
+            else if(DoorDirection == 1) DoorRight = true;
+            else DoorTop = true;
 
             AddStandardRoom(GameState,
                             ScreenX*TilesPerWidth + TilesPerWidth/2,
@@ -1065,22 +1070,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             DoorRight = false;
             DoorTop = false;
 
-            if(DoorDirection == 3)
-            {
-                AbsTileZ -= 1;                
-            }
-            else if(DoorDirection == 2)
-            {
-                AbsTileZ += 1;
-            }
-            else if(DoorDirection == 1)
-            {
-                ScreenX += 1;
-            }
-            else
-            {
-                ScreenY += 1;
-            }
+            if(DoorDirection == 3) AbsTileZ -= 1;                
+            else if(DoorDirection == 2) AbsTileZ += 1;
+            else if(DoorDirection == 1) ScreenX += 1;
+            else ScreenY += 1;
         }
 
 #if 0
@@ -1126,6 +1119,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         InitializeArena(&TranState->TranArena, Memory->TransientStorageSize - sizeof(transient_state),
                         (uint8 *)Memory->TransientStorage + sizeof(transient_state));
+
+		SubArena(&TranState->Assets.Arena, &TranState->TranArena, Megabytes(64));
+		TranState->Assets.ReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
+		TranState->Assets.TranState = TranState;
 
 		for(uint32 TaskIndex = 0;
 			TaskIndex < ArrayCount(TranState->Tasks);
@@ -1176,6 +1173,56 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
         }
 
+		TranState->Assets.Grass[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/grass00.bmp");
+		TranState->Assets.Grass[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/grass01.bmp");
+
+		TranState->Assets.Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground00.bmp");
+		TranState->Assets.Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground01.bmp");
+		TranState->Assets.Stone[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground02.bmp");
+		TranState->Assets.Stone[3] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/ground03.bmp");
+
+		TranState->Assets.Tuft[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
+		TranState->Assets.Tuft[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
+		TranState->Assets.Tuft[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
+				"handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
+
+		hero_bitmaps *Bitmap;
+
+		Bitmap = TranState->Assets.HeroBitmaps;
+		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_head.bmp");
+		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_cape.bmp");
+		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_torso.bmp");
+		SetTopDownAlign(Bitmap, V2(72 ,182));
+		++Bitmap;
+
+		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_head.bmp");
+		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_cape.bmp");
+		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_torso.bmp");
+		SetTopDownAlign(Bitmap, V2(72 ,182));
+		++Bitmap;
+
+		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_head.bmp");
+		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_cape.bmp");
+		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_torso.bmp");
+		SetTopDownAlign(Bitmap, V2(72 ,182));
+		++Bitmap;
+
+		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_head.bmp");
+		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_cape.bmp");
+		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_torso.bmp");
+		SetTopDownAlign(Bitmap, V2(72 ,182));
+		++Bitmap;
+
+		// LoadAssets(TranState, &TranState->Assets, Thread, Memory->DEBUGPlatformReadEntireFile);
+
         TranState->IsInitialized = true;
     }
 
@@ -1225,46 +1272,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             else
             {
                 // NOTE(Khisrow): Use digital movement tuning
-                if(Controller->MoveUp.EndedDown)
-                {
-                    ConHero->ddP.y = 1.0f;
-                }
-                if(Controller->MoveDown.EndedDown)
-                {
-                    ConHero->ddP.y = -1.0f;
-                }
-                if(Controller->MoveLeft.EndedDown)
-                {
-                    ConHero->ddP.x = -1.0f;
-                }
-                if(Controller->MoveRight.EndedDown)
-                {
-                    ConHero->ddP.x = 1.0f;
-                }
+                if(Controller->MoveUp.EndedDown) ConHero->ddP.y = 1.0f;
+                if(Controller->MoveDown.EndedDown) ConHero->ddP.y = -1.0f;
+                if(Controller->MoveLeft.EndedDown) ConHero->ddP.x = -1.0f;
+                if(Controller->MoveRight.EndedDown) ConHero->ddP.x = 1.0f;
             }
 
-            if(Controller->Start.EndedDown)
-            {
-                ConHero->dZ = 3.0f;
-            }
+            if(Controller->Start.EndedDown) ConHero->dZ = 3.0f;
             
             ConHero->dSword = {};
-            if(Controller->ActionUp.EndedDown)
-            {
-                ConHero->dSword = V2(0.0f, 1.0f);
-            }
-            if(Controller->ActionDown.EndedDown)
-            {
-                ConHero->dSword = V2(0.0f, -1.0f);
-            }
-            if(Controller->ActionLeft.EndedDown)
-            {
-                ConHero->dSword = V2(-1.0f, 0.0f);
-            }
-            if(Controller->ActionRight.EndedDown)
-            {
-                ConHero->dSword = V2(1.0f, 0.0f);
-            }
+            if(Controller->ActionUp.EndedDown) ConHero->dSword = V2(0.0f, 1.0f);
+            if(Controller->ActionDown.EndedDown) ConHero->dSword = V2(0.0f, -1.0f);
+            if(Controller->ActionLeft.EndedDown) ConHero->dSword = V2(-1.0f, 0.0f);
+            if(Controller->ActionRight.EndedDown) ConHero->dSword = V2(1.0f, 0.0f);
         }
     }
     
@@ -1287,7 +1307,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
 
     // TODO(Khisrow): Decide what our pushbuffer size is!
-    render_group *RenderGroup = AllocateRenderGroup(&TranState->TranArena, Megabytes(4));
+    render_group *RenderGroup = AllocateRenderGroup(&TranState->Assets, &TranState->TranArena, Megabytes(4));
     real32 WidthOfMonitor = 0.635f; // NOTE(Khisrow): Horizontal measurement of monitor in meters
 	real32 MetersToPixels = (real32)DrawBuffer->Width*WidthOfMonitor;
 	real32 FocalLength = 0.6f;
@@ -1378,10 +1398,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             }
                         }
 
-                        if(FurthestBuffer)
-                        {
-                            FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
-                        }
+                        if(FurthestBuffer) FillGroundChunk(TranState, GameState, FurthestBuffer, &ChunkCenterP);
                     }
                 }
             }
@@ -1416,10 +1433,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
             // TODO(Khisrow): This is incorrect, should be computed after update!!!!
             real32 ShadowAlpha = 1.0f - 0.5f*Entity->P.z;
-            if(ShadowAlpha < 0)
-            {
-                ShadowAlpha = 0.0f;
-            }
+            if(ShadowAlpha < 0) ShadowAlpha = 0.0f;
 
             move_spec MoveSpec = DefaultMoveSpec();
             v3 ddP = {};
@@ -1444,7 +1458,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			/*
 			   NOTE(Khisrow): Pre-physics entity work
 			*/
-            hero_bitmaps *HeroBitmaps = &GameState->HeroBitmaps[Entity->FacingDirection];
+            hero_bitmaps *HeroBitmaps = &TranState->Assets.HeroBitmaps[Entity->FacingDirection];
             switch(Entity->Type)
             {
                 case EntityType_Hero:
@@ -1459,10 +1473,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                         if(Entity->StorageIndex == ConHero->EntityIndex)
                         {
-                            if(ConHero->dZ != 0.0f)
-                            {
-                                Entity->dP.z = ConHero->dZ;
-                            }
+                            if(ConHero->dZ != 0.0f) Entity->dP.z = ConHero->dZ;
                         
                             MoveSpec.UnitMaxAccelVector = true;
                             MoveSpec.Speed = 50.0f;
@@ -1551,7 +1562,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     // TODO(Khisrow): Z!!!
                     real32 HeroSizeC = 2.5f;
-                    PushBitmap(RenderGroup, &GameState->Shadow, HeroSizeC*1.0f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                    PushBitmap(RenderGroup, GAI_Shadow, HeroSizeC*1.0f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
                     PushBitmap(RenderGroup, &HeroBitmaps->Torso, HeroSizeC*1.2f, V3(0, 0, 0));
                     PushBitmap(RenderGroup, &HeroBitmaps->Cape, HeroSizeC*1.2f, V3(0, 0, 0));
                     PushBitmap(RenderGroup, &HeroBitmaps->Head, HeroSizeC*1.2f, V3(0, 0, 0));
@@ -1561,7 +1572,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 case EntityType_Wall:
                 {
-                    PushBitmap(RenderGroup, &GameState->Tree, 2.5f, V3(0, 0, 0));
+                    PushBitmap(RenderGroup, GAI_Tree, 2.5f, V3(0, 0, 0));
                 } break;
 
                 case EntityType_Stairwell:
@@ -1572,25 +1583,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 case EntityType_Sword:
                 {
-                    PushBitmap(RenderGroup, &GameState->Shadow, 0.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
-                    PushBitmap(RenderGroup, &GameState->Sword, 0.5f, V3(0, 0, 0));
+                    PushBitmap(RenderGroup, GAI_Shadow, 0.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                    PushBitmap(RenderGroup, GAI_Sword, 0.5f, V3(0, 0, 0));
                 } break;
 
                 case EntityType_Familiar:
                 {
                     Entity->tBob += dt;
-                    if(Entity->tBob > (2.0f*Pi32))
-                    {
-                        Entity->tBob -= (2.0f*Pi32);
-                    }
+                    if(Entity->tBob > (2.0f*Pi32)) Entity->tBob -= (2.0f*Pi32);
                     real32 BobSin = Sin(2.0f*Entity->tBob);
-                    PushBitmap(RenderGroup, &GameState->Shadow, 2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) + 0.2f*BobSin));
+                    PushBitmap(RenderGroup, GAI_Shadow, 2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) + 0.2f*BobSin));
                     PushBitmap(RenderGroup, &HeroBitmaps->Head, 2.5f, V3(0, 0, 0.25f*BobSin));
                 } break;
                 
                 case EntityType_Monstar:
                 {
-                    PushBitmap(RenderGroup, &GameState->Shadow, 4.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                    PushBitmap(RenderGroup, GAI_Shadow, 4.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
                     PushBitmap(RenderGroup, &HeroBitmaps->Torso, 4.5f, V3(0, 0, 0));
 
                     DrawHitpoints(Entity, RenderGroup);

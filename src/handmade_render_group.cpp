@@ -1220,7 +1220,7 @@ TiledRenderGroupToOutput(platform_work_queue *RenderQueue, render_group *RenderG
 }
 
 internal render_group *
-AllocateRenderGroup(memory_arena *Arena, uint32 MaxPushBufferSize)
+AllocateRenderGroup(game_assets *Assets, memory_arena *Arena, uint32 MaxPushBufferSize)
 {
     render_group *Result = PushStruct(Arena, render_group);
 
@@ -1234,6 +1234,7 @@ AllocateRenderGroup(memory_arena *Arena, uint32 MaxPushBufferSize)
     Result->MaxPushBufferSize = MaxPushBufferSize;
     Result->PushBufferSize = 0;
 
+	Result->Assets = Assets;
     Result->GlobalAlpha = 1.0f;
 
 	// NOTE(Khisrow): Default transform
@@ -1294,7 +1295,7 @@ GetRenderEntityBasisP(render_transform *Transform, v3 OriginalP)
 		real32 OffsetZ = 0.0f;
 
 		real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
-#if 1
+#if 0
 		// TODO(Khisrow): How do we want to control the debug camera?
 		if(1) DistanceAboveTarget += 50.0f;
 #endif
@@ -1365,6 +1366,14 @@ PushBitmap(render_group *Group, loaded_bitmap *Bitmap, real32 Height, v3 Offset,
 }
 
 inline void
+PushBitmap(render_group *Group, game_assets_id ID, real32 Height, v3 Offset, v4 Color = V4(1, 1, 1, 1))
+{
+	loaded_bitmap *Bitmap = GetBitmap(Group->Assets, ID);
+	if(Bitmap) PushBitmap(Group, Bitmap, Height, Offset, Color);
+	else LoadAsset(Group->Assets, ID);
+}
+
+inline void
 PushRect(render_group *Group, v3 Offset, v2 Dim, v4 Color = V4(1, 1, 1, 1))
 {
 	v3 P = (Offset - V3(0.5f*Dim, 0));
@@ -1399,10 +1408,7 @@ inline void
 Clear(render_group *Group, v4 Color)
 {
     render_entry_clear *Entry = PushRenderElement(Group, render_entry_clear);
-    if(Entry)
-    {
-        Entry->Color = Color;
-    }
+    if(Entry) Entry->Color = Color;
 }
 
 inline void
