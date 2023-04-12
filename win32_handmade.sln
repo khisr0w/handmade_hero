@@ -1,19 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2016
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33130.400
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "win32_handmade", "bin\win32_handmade.exe", "{5278BBA4-0FEB-4E44-89F7-256918D7F961}"
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
-		Executable = C:\handmade_hero\bin\win32_handmade.exe
+		Executable = E:\handmade_hero\bin\win32_handmade.exe
 		RemoteMachine = MAD-HOUSE
-		StartingDirectory = C:\handmade_hero\data
+		StartingDirectory = E:\handmade_hero\data
 		Environment = Default
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
+		IORedirection = Auto
 	EndProjectSection
 EndProject
 Global

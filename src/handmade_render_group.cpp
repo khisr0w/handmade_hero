@@ -1241,6 +1241,7 @@ AllocateRenderGroup(game_assets *Assets, memory_arena *Arena, uint32 MaxPushBuff
     Result->Transform.OffsetP = V3(0.f, 0.f, 0.0f);
     Result->Transform.Scale = 1.f;
 
+    Result->MissingResourceCount = 0;
     return Result;
 }
 
@@ -1369,8 +1370,15 @@ inline void
 PushBitmap(render_group *Group, game_assets_id ID, real32 Height, v3 Offset, v4 Color = V4(1, 1, 1, 1))
 {
 	loaded_bitmap *Bitmap = GetBitmap(Group->Assets, ID);
-	if(Bitmap) PushBitmap(Group, Bitmap, Height, Offset, Color);
-	else LoadAsset(Group->Assets, ID);
+	if(Bitmap)
+    {
+        PushBitmap(Group, Bitmap, Height, Offset, Color);
+    }
+    else
+    {
+        LoadAsset(Group->Assets, ID);
+        ++Group->MissingResourceCount;
+    }
 }
 
 inline void
@@ -1461,5 +1469,12 @@ GetCameraRectangleAtTarget(render_group *Group)
 {
     rectangle2 Result = GetCameraRectangleAtDistance(Group, Group->Transform.DistanceAboveTarget);
     
+    return Result;
+}
+
+inline bool32
+AllResourcesPresent(render_group *Group)
+{
+    bool32 Result = (Group->MissingResourceCount == 0);
     return Result;
 }

@@ -17,8 +17,14 @@
 
 #if COMPILER_MSVC
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier()
+// NOTE(Abid): volatile; it essentially tells the compiler that the value of the variable can change without action from the visible code.
+inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 Expected, uint32 New)
+{
+    uint32 Result = _InterlockedCompareExchange((long *)Value, Expected, New);
+    return (Result);
+}
 #else
-	// TODO(Khisrow); Need to define these on GCC and LLVM(clang)
+	// TODO(Khisrow); Need gcc/LLVM equivalents!
 #endif
 
 inline int32
