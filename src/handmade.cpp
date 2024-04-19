@@ -12,6 +12,7 @@
 #include "handmade_random.h"
 #include "handmade_sim_region.cpp"
 #include "handmade_entity.cpp"
+#include "handmade_asset.cpp"
 
 internal void
 GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz)
@@ -42,139 +43,6 @@ GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, in
         }
 #endif
     }
-}
-
-#pragma pack(push, 1)
-struct bitmap_header
-{
-    uint16 FileType;
-    uint32 FileSize;
-    uint16 Reserved1;
-    uint16 Reserved2;
-    uint32 BitmapOffset;
-    uint32 Size;
-    int32 Width;
-    int32 Height;
-    uint16 Planes;
-    uint16 BitsPerPixel;
-    uint32 Compression;
-    uint32 SizeOfBitmap;
-    int32 HorzResolution;
-    int32 VertResolution;
-    uint32 ColorsUsed;
-    uint32 ColorsImportant;
-
-    uint32 RedMask;
-    uint32 GreenMask;
-    uint32 BlueMask;
-};
-#pragma pack(pop)
-
-inline v2
-TopDownAlign(loaded_bitmap *Bitmap, v2 Align)
-{
-    Align.y = (real32)(Bitmap->Height - 1) - Align.y;
-
-    Align.x = SafeRatio0(Align.x, (real32)Bitmap->Width);
-    Align.y = SafeRatio0(Align.y, (real32)Bitmap->Height);
-    
-    return Align;
-}            
-
-internal loaded_bitmap
-DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntireFile, char *FileName,
-             int32 AlignX, int32 TopDownAlignY)
-{
-    loaded_bitmap Result = {};
-    
-    debug_read_file_result ReadResult = ReadEntireFile(Thread, FileName);    
-    if(ReadResult.ContentsSize != 0)
-    {
-        bitmap_header *Header = (bitmap_header *)ReadResult.Contents;
-        uint32 *Pixels = (uint32 *)((uint8 *)ReadResult.Contents + Header->BitmapOffset);
-        Result.Memory = Pixels;
-        Result.Width = Header->Width;
-        Result.Height = Header->Height;
-        Result.AlignPercentage = TopDownAlign(&Result, V2i(AlignX, TopDownAlignY));
-        Result.WidthOverHeight = SafeRatio0((real32)Result.Width, (real32)Result.Height);
-        
-        Assert(Result.Height >= 0);
-        Assert(Header->Compression == 3);
-
-        // NOTE(Khisrow): If you are using this generically for some reason,
-        // please remember that BMP files CAN GO IN EITHER DIRECTION and
-        // the height will be negative for top-down.
-        // (Also, there can be compression, etc., etc... DON'T think this
-        // is complete BMP loading code because it isn't!!)
-
-        // NOTE(Khisrow): Byte order in memory is determined by the Header itself,
-        // so we have to read out the masks and convert the pixels ourselves.
-        uint32 RedMask = Header->RedMask;
-        uint32 GreenMask = Header->GreenMask;
-        uint32 BlueMask = Header->BlueMask;
-        uint32 AlphaMask = ~(RedMask | GreenMask | BlueMask);        
-        
-        bit_scan_result RedScan = FindLeastSignificantSetBit(RedMask);
-        bit_scan_result GreenScan = FindLeastSignificantSetBit(GreenMask);
-        bit_scan_result BlueScan = FindLeastSignificantSetBit(BlueMask);
-        bit_scan_result AlphaScan = FindLeastSignificantSetBit(AlphaMask);
-        
-        Assert(RedScan.Found);
-        Assert(GreenScan.Found);
-        Assert(BlueScan.Found);
-        Assert(AlphaScan.Found);
-
-        int32 RedShiftDown = (int32)RedScan.Index;
-        int32 GreenShiftDown = (int32)GreenScan.Index;
-        int32 BlueShiftDown = (int32)BlueScan.Index;
-        int32 AlphaShiftDown = (int32)AlphaScan.Index;
-        
-        uint32 *SourceDest = Pixels;
-        for(int32 Y = 0;
-            Y < Header->Height;
-            ++Y)
-        {
-            for(int32 X = 0;
-                X < Header->Width;
-                ++X)
-            {
-                uint32 C = *SourceDest;
-
-                v4 Texel = {(real32)((C & RedMask) >> RedShiftDown),
-                            (real32)((C & GreenMask) >> GreenShiftDown),
-                            (real32)((C & BlueMask) >> BlueShiftDown),
-                            (real32)((C & AlphaMask) >> AlphaShiftDown)};
-
-                Texel = SRGB255ToLinear1(Texel);
-#if 1
-                Texel.rgb *= Texel.a;
-#endif
-                Texel = Linear1ToSRGB255(Texel);
-                
-                *SourceDest++ = (((uint32)(Texel.a + 0.5f) << 24) |
-                                 ((uint32)(Texel.r + 0.5f) << 16) |
-                                 ((uint32)(Texel.g + 0.5f) << 8)  |
-                                 ((uint32)(Texel.b + 0.5f) << 0));
-            }
-        }
-    }
-
-    Result.Pitch = Result.Width*BITMAP_BYTES_PER_PIXEL;
-
-#if 0
-    Result.Memory = (uint8 *)Result.Memory + Result.Pitch*(Result.Height - 1);
-    Result.Pitch = -Result.Pitch;
-#endif
-    
-    return Result;
-}
-
-internal loaded_bitmap
-DEBUGLoadBMP(thread_context *Thread, debug_platform_read_entire_file *ReadEntireFile, char *FileName)
-{
-    loaded_bitmap Result = DEBUGLoadBMP(Thread, ReadEntireFile, FileName, 0, 0);
-    Result.AlignPercentage = V2(0.5f, 0.5f);
-    return Result;
 }
 
 struct add_low_entity_result
@@ -367,8 +235,7 @@ DrawHitpoints(sim_entity *Entity, render_group *PieceGroup)
 }
 
 internal void
-ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex)
-{
+ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex) {
     // TODO(Khisrow): Need to make a better data structure that allows
     // removal of collision rules without searching the entire table
     // NOTE(Khisrow): One way to make removal easy would be to always
@@ -379,37 +246,25 @@ ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex)
     // of the free list, and when you're done, do a pass through all
     // the new things on the free list, and remove the reverse of
     // those pairs.
-    for(uint32 HashBucket = 0;
-        HashBucket < ArrayCount(GameState->CollisionRuleHash);
-        ++HashBucket)
-    {
-        for(pairwise_collision_rule **Rule = &GameState->CollisionRuleHash[HashBucket];
-            *Rule;
-            )
-        {
+    for(uint32 HashBucket = 0; HashBucket < ArrayCount(GameState->CollisionRuleHash); ++HashBucket) {
+        for(pairwise_collision_rule **Rule = &GameState->CollisionRuleHash[HashBucket]; *Rule;) {
             if(((*Rule)->StorageIndexA == StorageIndex) ||
-               ((*Rule)->StorageIndexB == StorageIndex))
-            {
+               ((*Rule)->StorageIndexB == StorageIndex)) {
                 pairwise_collision_rule *RemovedRule = *Rule;
                 *Rule = (*Rule)->NextInHash;
 
                 RemovedRule->NextInHash = GameState->FirstFreeCollisionRule;
                 GameState->FirstFreeCollisionRule = RemovedRule;
-            }
-            else
-            {
-                Rule = &(*Rule)->NextInHash;
-            }
+            } else Rule = &(*Rule)->NextInHash;
         }
     }
 }
 
 internal void
-AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB, bool32 CanCollide)
-{
+AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageIndexB,
+                 bool32 CanCollide) {
     // TODO(Khisrow): Collapse this with ShouldCollide
-    if(StorageIndexA > StorageIndexB)
-    {
+    if(StorageIndexA > StorageIndexB) {
         uint32 Temp = StorageIndexA;
         StorageIndexA = StorageIndexB;
         StorageIndexB = Temp;
@@ -418,36 +273,25 @@ AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageInde
     // TODO(Khisrow): BETTER HASH FUNCTION
     pairwise_collision_rule *Found = 0;
     uint32 HashBucket = StorageIndexA & (ArrayCount(GameState->CollisionRuleHash) - 1);
-    for(pairwise_collision_rule *Rule = GameState->CollisionRuleHash[HashBucket];
-        Rule;
-        Rule = Rule->NextInHash)
-    {
+    for(pairwise_collision_rule *Rule = GameState->CollisionRuleHash[HashBucket]; Rule;
+        Rule = Rule->NextInHash) {
         if((Rule->StorageIndexA == StorageIndexA) &&
-           (Rule->StorageIndexB == StorageIndexB))
-        {
+           (Rule->StorageIndexB == StorageIndexB)) {
             Found = Rule;
             break;
         }
     }
     
-    if(!Found)
-    {
+    if(!Found) {
         Found = GameState->FirstFreeCollisionRule;
-        if(Found)
-        {
-            GameState->FirstFreeCollisionRule = Found->NextInHash;
-        }
-        else
-        {
-            Found = PushStruct(&GameState->WorldArena, pairwise_collision_rule);
-        }
+        if(Found) GameState->FirstFreeCollisionRule = Found->NextInHash;
+        else Found = PushStruct(&GameState->WorldArena, pairwise_collision_rule);
         
         Found->NextInHash = GameState->CollisionRuleHash[HashBucket];
         GameState->CollisionRuleHash[HashBucket] = Found;
     }
 
-    if(Found)
-    {
+    if(Found) {
         Found->StorageIndexA = StorageIndexA;
         Found->StorageIndexB = StorageIndexB;
         Found->CanCollide = CanCollide;
@@ -455,8 +299,7 @@ AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint32 StorageInde
 }
 
 sim_entity_collision_volume_group *
-MakeSimpleGroundedCollision(game_state *GameState, real32 DimX, real32 DimY, real32 DimZ)
-{
+MakeSimpleGroundedCollision(game_state *GameState, real32 DimX, real32 DimY, real32 DimZ) {
     // TODO(Khisrow): NOT WORLD ARENA!  Change to using the fundamental types arena, etc.
     sim_entity_collision_volume_group *Group = PushStruct(&GameState->WorldArena, sim_entity_collision_volume_group);
     Group->VolumeCount = 1;
@@ -469,8 +312,7 @@ MakeSimpleGroundedCollision(game_state *GameState, real32 DimX, real32 DimY, rea
 }
 
 sim_entity_collision_volume_group *
-MakeNullCollision(game_state *GameState)
-{
+MakeNullCollision(game_state *GameState) {
     // TODO(Khisrow): NOT WORLD ARENA! Change to using the fundamental types arena, etc.
     sim_entity_collision_volume_group *Group = PushStruct(&GameState->WorldArena, sim_entity_collision_volume_group);
     Group->VolumeCount = 0;
@@ -483,17 +325,12 @@ MakeNullCollision(game_state *GameState)
 }
 
 internal task_with_memory *
-BeginTaskWithMemory(transient_state *TranState)
-{
+BeginTaskWithMemory(transient_state *TranState) {
 	task_with_memory *FoundTask = 0;
 
-	for(uint32 TaskIndex = 0;
-		TaskIndex < ArrayCount(TranState->Tasks);
-		++TaskIndex)
-	{
+	for(uint32 TaskIndex = 0; TaskIndex < ArrayCount(TranState->Tasks); ++TaskIndex) {
 		task_with_memory *Task = TranState->Tasks + TaskIndex;
-		if(!Task->BeingUsed)
-		{
+		if(!Task->BeingUsed) {
 			FoundTask = Task;
 			Task->BeingUsed = true;
 			Task->MemoryFlush = BeginTemporaryMemory(&Task->Arena);
@@ -504,22 +341,19 @@ BeginTaskWithMemory(transient_state *TranState)
 	return FoundTask;
 }
 
-inline void
-EndTaskWithMemory(task_with_memory *Task)
-{
+internal void
+EndTaskWithMemory(task_with_memory *Task) {
     EndTemporaryMemory(Task->MemoryFlush);
 	CompletePreviousWritesBeforeFutureWrites;
 	Task->BeingUsed = false;
 }
 
-struct fill_ground_chunk_work
-{
+struct fill_ground_chunk_work {
 	render_group *RenderGroup;
 	loaded_bitmap *Buffer;
 	task_with_memory *Task;
 };
-internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork)
-{
+internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork) {
 	fill_ground_chunk_work *Work = (fill_ground_chunk_work *)Data;
 
 	RenderGroupToOutput(Work->RenderGroup, Work->Buffer);
@@ -527,29 +361,27 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(FillGroundChunkWork)
 	EndTaskWithMemory(Work->Task);
 }
 
+#if 0
 internal uint32
-PickBest(int32 InfoCount, asset_bitmap_info *Infos, asset_tag *Tags, real32 *MatchVector, real32 *WeightVector)
-{
+PickBest(int32 InfoCount, asset_bitmap_info *Infos, asset_tag *Tags, real32 *MatchVector,
+         real32 *WeightVector) {
     real32 BestDiff = Real32Maximum;
     uint32 BestIndex = 0;
 
-    for(int32 InfoIndex = 0; InfoIndex < InfoCount; ++InfoIndex)
-    {
+    for(int32 InfoIndex = 0; InfoIndex < InfoCount; ++InfoIndex) {
         asset_bitmap_info *Info = Infos + InfoIndex;
 
         real32 TotalWeightedDiff = 0.0f;
         for(uint32 TagIndex = Info->FirstTagIndex;
             TagIndex < Info->OnePastLastTagCount;
-            ++TagIndex)
-        {
+            ++TagIndex) {
             asset_tag *Tag = Tags + TagIndex;
             real32 Difference = MatchVector[Tag->ID] - Tag->Value;
             real32 Weighted = WeightVector[Tag->ID] * AbsoluteValue(Difference);
             TotalWeightedDiff += Weighted;
         }
 
-        if(BestDiff > TotalWeightedDiff)
-        {
+        if(BestDiff > TotalWeightedDiff) {
             BestDiff = TotalWeightedDiff;
             BestIndex = InfoIndex;
         }
@@ -557,13 +389,13 @@ PickBest(int32 InfoCount, asset_bitmap_info *Infos, asset_tag *Tags, real32 *Mat
 
     return BestIndex;
 }
+#endif 
 
 internal void
-FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer *GroundBuffer, world_position *ChunkP)
-{
+FillGroundChunk(transient_state *TranState, game_state *GameState,
+                ground_buffer *GroundBuffer, world_position *ChunkP) {
 	task_with_memory *Task = BeginTaskWithMemory(TranState);
-	if(Task)
-	{
+	if(Task) {
 		fill_ground_chunk_work *Work = PushStruct(&Task->Arena, fill_ground_chunk_work);
 		GroundBuffer->P = *ChunkP;
 
@@ -578,18 +410,12 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 		v2 HalfDim = 0.5f*V2(Width, Height);
 
 		// TODO(Khisrow): Decide what our pushbuffer size is!
-		render_group *RenderGroup = AllocateRenderGroup(&TranState->Assets, &Task->Arena, 0); // (uint32)GetArenaSizeRemaining(&Task->Arena));
+		render_group *RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0); // (uint32)GetArenaSizeRemaining(&Task->Arena));
 		Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (Buffer->Width - 2) / Width);
 		Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
 
-		for(int32 ChunkOffsetY = -1;
-			ChunkOffsetY <= 1;
-			++ChunkOffsetY)
-		{
-			for(int32 ChunkOffsetX = -1;
-				ChunkOffsetX <= 1;
-				++ChunkOffsetX)
-			{
+		for(int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ++ChunkOffsetY) {
+			for(int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ++ChunkOffsetX) {
 				int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
 				int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
 				int32 ChunkZ = ChunkP->ChunkZ;
@@ -605,18 +431,12 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 #endif
 				v2 Center = V2(ChunkOffsetX*Width, ChunkOffsetY*Height);
 
-				for(uint32 GrassIndex = 0;
-					GrassIndex < 100;
-					++GrassIndex)
-				{
+				for(uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
 					loaded_bitmap *Stamp;
-					if(RandomChoice(&Series, 2))
-					{
-						Stamp = TranState->Assets.Grass + RandomChoice(&Series, ArrayCount(TranState->Assets.Grass));
-					}
-					else
-					{
-						Stamp = TranState->Assets.Stone + RandomChoice(&Series, ArrayCount(TranState->Assets.Stone));
+					if(RandomChoice(&Series, 2)) {
+						Stamp = TranState->Assets->Grass + RandomChoice(&Series, ArrayCount(TranState->Assets->Grass));
+					} else {
+						Stamp = TranState->Assets->Stone + RandomChoice(&Series, ArrayCount(TranState->Assets->Stone));
 					}
 
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
@@ -625,14 +445,8 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 			}
 		}
 
-		for(int32 ChunkOffsetY = -1;
-			ChunkOffsetY <= 1;
-			++ChunkOffsetY)
-		{
-			for(int32 ChunkOffsetX = -1;
-				ChunkOffsetX <= 1;
-				++ChunkOffsetX)
-			{
+		for(int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ++ChunkOffsetY) {
+			for(int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ++ChunkOffsetX) {
 				int32 ChunkX = ChunkP->ChunkX + ChunkOffsetX;
 				int32 ChunkY = ChunkP->ChunkY + ChunkOffsetY;
 				int32 ChunkZ = ChunkP->ChunkZ;
@@ -643,11 +457,8 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 
 				v2 Center = V2(ChunkOffsetX*Width, ChunkOffsetY*Height);
 
-				for(uint32 GrassIndex = 0;
-					GrassIndex < 50;
-					++GrassIndex)
-				{
-					loaded_bitmap *Stamp = TranState->Assets.Tuft + RandomChoice(&Series, ArrayCount(TranState->Assets.Tuft));
+				for(uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
+					loaded_bitmap *Stamp = TranState->Assets->Tuft + RandomChoice(&Series, ArrayCount(TranState->Assets->Tuft));
 
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
 					PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0.0f));
@@ -655,8 +466,7 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 			}
 		}
 
-        if(AllResourcesPresent(RenderGroup))
-        {
+        if(AllResourcesPresent(RenderGroup)) {
             Work->RenderGroup = RenderGroup;
             Work->Buffer = Buffer;
             Work->Task = Task;
@@ -667,18 +477,15 @@ FillGroundChunk(transient_state *TranState, game_state *GameState, ground_buffer
 }
 
 internal void
-ClearBitmap(loaded_bitmap *Bitmap)
-{
-    if(Bitmap->Memory)
-    {
+ClearBitmap(loaded_bitmap *Bitmap) {
+    if(Bitmap->Memory) {
         int32 TotalBitmapSize = Bitmap->Width*Bitmap->Height*BITMAP_BYTES_PER_PIXEL;
         ZeroSize(TotalBitmapSize, Bitmap->Memory);
     }
 }
 
 internal loaded_bitmap
-MakeEmptyBitmap(memory_arena *Arena, int32 Width, int32 Height, bool32 ClearToZero = true)
-{
+MakeEmptyBitmap(memory_arena *Arena, int32 Width, int32 Height, bool32 ClearToZero = true) {
     loaded_bitmap Result = {};
 
     Result.Width = Width;
@@ -687,29 +494,20 @@ MakeEmptyBitmap(memory_arena *Arena, int32 Width, int32 Height, bool32 ClearToZe
     int32 TotalBitmapSize = Width*Height*BITMAP_BYTES_PER_PIXEL;
     Result.Memory = PushSize(Arena, TotalBitmapSize, 16);
     if(ClearToZero)
-    {
         ClearBitmap(&Result);
-    }
 
     return Result;
 }
 
 internal void
-MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness, real32 Cx = 1.0f, real32 Cy = 1.0f)
-{
+MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness, real32 Cx = 1.0f, real32 Cy = 1.0f) {
     real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
     real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
     
     uint8 *Row = (uint8 *)Bitmap->Memory;
-    for(int32 Y = 0;
-        Y < Bitmap->Height;
-        ++Y)
-    {
+    for(int32 Y = 0; Y < Bitmap->Height; ++Y) {
         uint32 *Pixel = (uint32 *)Row;
-        for(int32 X = 0;
-            X < Bitmap->Width;
-            ++X)
-        {
+        for(int32 X = 0; X < Bitmap->Width; ++X) {
             v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
 
             real32 Nx = Cx*(2.0f*BitmapUV.x - 1.0f);
@@ -718,8 +516,7 @@ MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness, real32 Cx = 1.0f, r
             real32 RootTerm = 1.0f - Nx*Nx - Ny*Ny;
             v3 Normal = {0, 0.707106781188f, 0.707106781188f};
             real32 Nz = 0.0f;
-            if(RootTerm >= 0.0f)
-            {
+            if(RootTerm >= 0.0f) {
                 Nz = SquareRoot(RootTerm);
                 Normal = V3(Nx, Ny, Nz);
             }
@@ -740,21 +537,14 @@ MakeSphereNormalMap(loaded_bitmap *Bitmap, real32 Roughness, real32 Cx = 1.0f, r
 }
 
 internal void
-MakeSphereDiffuseMap(loaded_bitmap *Bitmap, real32 Cx = 1.0f, real32 Cy = 1.0f)
-{
+MakeSphereDiffuseMap(loaded_bitmap *Bitmap, real32 Cx = 1.0f, real32 Cy = 1.0f) {
     real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
     real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
     
     uint8 *Row = (uint8 *)Bitmap->Memory;
-    for(int32 Y = 0;
-        Y < Bitmap->Height;
-        ++Y)
-    {
+    for(int32 Y = 0; Y < Bitmap->Height; ++Y) {
         uint32 *Pixel = (uint32 *)Row;
-        for(int32 X = 0;
-            X < Bitmap->Width;
-            ++X)
-        {
+        for(int32 X = 0; X < Bitmap->Width; ++X) {
             v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
 
             real32 Nx = Cx*(2.0f*BitmapUV.x - 1.0f);
@@ -763,9 +553,7 @@ MakeSphereDiffuseMap(loaded_bitmap *Bitmap, real32 Cx = 1.0f, real32 Cy = 1.0f)
             real32 RootTerm = 1.0f - Nx*Nx - Ny*Ny;
             real32 Alpha = 0.0f;            
             if(RootTerm >= 0.0f)
-            {
                 Alpha = 1.0f;
-            }
 
             v3 BaseColor = {0.0f, 0.0f, 0.0f};
             Alpha *= 255.0f;
@@ -785,47 +573,25 @@ MakeSphereDiffuseMap(loaded_bitmap *Bitmap, real32 Cx = 1.0f, real32 Cy = 1.0f)
 }
 
 internal void
-MakePyramidNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
-{
+MakePyramidNormalMap(loaded_bitmap *Bitmap, real32 Roughness) {
     real32 InvWidth = 1.0f / (real32)(Bitmap->Width - 1);
     real32 InvHeight = 1.0f / (real32)(Bitmap->Height - 1);
     
     uint8 *Row = (uint8 *)Bitmap->Memory;
-    for(int32 Y = 0;
-        Y < Bitmap->Height;
-        ++Y)
-    {
+    for(int32 Y = 0; Y < Bitmap->Height; ++Y) {
         uint32 *Pixel = (uint32 *)Row;
-        for(int32 X = 0;
-            X < Bitmap->Width;
-            ++X)
-        {
+        for(int32 X = 0; X < Bitmap->Width; ++X) {
             v2 BitmapUV = {InvWidth*(real32)X, InvHeight*(real32)Y};
 
             int32 InvX = (Bitmap->Width - 1) - X;
             real32 Seven = 0.707106781188f;
             v3 Normal = {0, 0, Seven};
-            if(X < Y)
-            {
-                if(InvX < Y)
-                {
-                    Normal.x = -Seven;
-                }
-                else
-                {
-                    Normal.y = Seven;
-                }
-            }
-            else
-            {
-                if(InvX < Y)
-                {
-                    Normal.y = -Seven;
-                }
-                else
-                {
-                    Normal.x = Seven;
-                }
+            if(X < Y) {
+                if(InvX < Y) Normal.x = -Seven;
+                else Normal.y = Seven;
+            } else {
+                if(InvX < Y) Normal.y = -Seven;
+                else Normal.x = Seven;
             }
 
             v4 Color = {255.0f*(0.5f*(Normal.x + 1.0f)),
@@ -843,125 +609,13 @@ MakePyramidNormalMap(loaded_bitmap *Bitmap, real32 Roughness)
     }
 }
 
-internal void
-SetTopDownAlign(hero_bitmaps *Bitmap, v2 Align)
-{
-    Align = TopDownAlign(&Bitmap->Head, Align);
-
-    Bitmap->Head.AlignPercentage = Align;
-    Bitmap->Cape.AlignPercentage = Align;
-    Bitmap->Torso.AlignPercentage = Align;
-}
-
-struct load_asset_work
-{
-	game_assets *Assets;
-	char *FileName;
-	game_assets_id ID;
-	task_with_memory *Task;
-	loaded_bitmap *Bitmap;
-
-    bool32 HasAlignment;
-    int32 AlignX;
-    int32 TopDownAlignY;
-
-    asset_state FinalState;
-};
-internal PLATFORM_WORK_QUEUE_CALLBACK(LoadAssetWork)
-{
-	load_asset_work *Work = (load_asset_work *)Data;
-
-	// TODO(Khisrow): Get rid of this thread_context thing when i load through a queue instead of the debug call
-	thread_context *Thread = 0;
-
-    if(Work->HasAlignment)
-    {
-        *Work->Bitmap = DEBUGLoadBMP(Thread, Work->Assets->ReadEntireFile, Work->FileName,
-                                     Work->AlignX, Work->TopDownAlignY);
-    }
-    else
-    {
-        *Work->Bitmap = DEBUGLoadBMP(Thread, Work->Assets->ReadEntireFile, Work->FileName);
-    }
-
-    // NOTE(Abid): Memory barrier
-    CompletePreviousWritesBeforeFutureWrites;
-
-	Work->Assets->Bitmaps[Work->ID].Bitmap = Work->Bitmap;
-	Work->Assets->Bitmaps[Work->ID].State= Work->FinalState;
-
-	EndTaskWithMemory(Work->Task);
-}
-
-internal void
-LoadAsset(game_assets *Assets, game_assets_id ID)
-{
-    if(AtomicCompareExchangeUInt32((uint32 *)&Assets->Bitmaps[ID].State, AssetState_Unloaded, AssetState_Queued) == AssetState_Unloaded)
-    {
-        task_with_memory *Task = BeginTaskWithMemory(Assets->TranState);
-        if(Task)
-        {
-            debug_platform_read_entire_file *ReadEntireFile = Assets->ReadEntireFile;
-
-            load_asset_work *Work = PushStruct(&Task->Arena, load_asset_work);
-
-            Work->Assets = Assets;
-            Work->ID = ID;
-            Work->FileName = "";
-            Work->Task = Task;
-            Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
-            Work->HasAlignment = false;
-            Work->FinalState = AssetState_Loaded;
-
-            // TODO(Khisrow): Get rid of this thread_context thing when i load through a queue instead of the debug call
-            thread_context *Thread = 0;
-            switch(ID)
-            {
-                case GAI_Backdrop:
-                {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test/test_background.bmp";
-                } break;
-                case GAI_Shadow:
-                {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test/test_hero_shadow.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 72;
-                    Work->TopDownAlignY= 182;
-                } break;
-                case GAI_Tree:
-                {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/tree00.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 40;
-                    Work->TopDownAlignY= 80;
-                } break;
-                case GAI_Sword:
-                {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock03.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 29;
-                    Work->TopDownAlignY= 10;
-                } break;
-                case GAI_Stairwell:
-                {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock02.bmp";
-                    // 29, 10
-                } break;
-            }
-
-            // NOTE(Khisrow): WARNING(Khisrow): Should be before switch?
-            PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadAssetWork, Work);
-        }
-    }
-}
-
 #if HANDMADE_INTERNAL
 game_memory *DebugGlobalMemory;
 #endif
-extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
-{
+extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
 	PlatformAddEntry = Memory->PlatformAddEntry;
 	PlatformCompleteAllWork = Memory->PlatformCompleteAllWork;
+    DEBUGPlatformReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
 
 #if HANDMADE_INTERNAL
     DebugGlobalMemory = Memory;
@@ -976,8 +630,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);    
     game_state *GameState = (game_state *)Memory->PermanentStorage;
-    if(!Memory->IsInitialized)
-    {
+    if(!GameState->IsInitialized) {
         uint32 TilesPerWidth = 17;
         uint32 TilesPerHeight = 9;
 
@@ -1021,7 +674,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                                                        TilesPerHeight*TileSideInMeters,
                                                                        0.9f*TileDepthInMeters);
 
-
 		random_series Series = RandomSeed(1234);
         
         uint32 ScreenBaseX = 0;
@@ -1038,10 +690,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         bool32 DoorBottom = false;
         bool32 DoorUp = false;
         bool32 DoorDown = false;
-        for(uint32 ScreenIndex = 0;
-            ScreenIndex < 2000;
-            ++ScreenIndex)
-        {
+        for(uint32 ScreenIndex = 0; ScreenIndex < 2000; ++ScreenIndex) {
 #if 1
             uint32 DoorDirection = RandomChoice(&Series, (DoorUp || DoorDown) ? 2 : 4);
 #else
@@ -1051,13 +700,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 //            DoorDirection = 3;
             
             bool32 CreatedZDoor = false;
-            if(DoorDirection == 3)
-            {                
+            if(DoorDirection == 3) {                
                 CreatedZDoor = true;
                 DoorDown = true;
-            }
-            else if(DoorDirection == 2)
-            {
+            } else if(DoorDirection == 2) {
                 CreatedZDoor = true;
                 DoorUp = true;
             }
@@ -1069,47 +715,29 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             ScreenY*TilesPerHeight + TilesPerHeight/2,
                             AbsTileZ);
             
-            for(uint32 TileY = 0;
-                TileY < TilesPerHeight;
-                ++TileY)
-            {
-                for(uint32 TileX = 0;
-                    TileX < TilesPerWidth;
-                    ++TileX)
-                {
+            for(uint32 TileY = 0; TileY < TilesPerHeight; ++TileY) {
+                for(uint32 TileX = 0; TileX < TilesPerWidth; ++TileX) {
                     uint32 AbsTileX = ScreenX*TilesPerWidth + TileX;
                     uint32 AbsTileY = ScreenY*TilesPerHeight + TileY;
                     
                     bool32 ShouldBeDoor = false;
                     if((TileX == 0) && (!DoorLeft || (TileY != (TilesPerHeight/2))))
-                    {
                         ShouldBeDoor = true;
-                    }
 
                     if((TileX == (TilesPerWidth - 1)) && (!DoorRight || (TileY != (TilesPerHeight/2))))
-                    {
                         ShouldBeDoor = true;
-                    }
                     
                     if((TileY == 0) && (!DoorBottom || (TileX != (TilesPerWidth/2))))
-                    {
                         ShouldBeDoor = true;
-                    }
 
                     if((TileY == (TilesPerHeight - 1)) && (!DoorTop || (TileX != (TilesPerWidth/2))))
-                    {
                         ShouldBeDoor = true;
-                    }
 
-                    if(ShouldBeDoor)
-                    {
+                    if(ShouldBeDoor) {
                         AddWall(GameState, AbsTileX, AbsTileY, AbsTileZ);
-                    }
-                    else if(CreatedZDoor)
-                    {
+                    } else if(CreatedZDoor) {
                         if(((AbsTileZ % 2) && (TileX == 10) && (TileY == 5)) ||
-                           (!(AbsTileZ % 2) && (TileX == 4) && (TileY == 5)))
-                        {
+                           (!(AbsTileZ % 2) && (TileX == 4) && (TileY == 5))) {
                             AddStair(GameState, AbsTileX, AbsTileY, DoorDown ? AbsTileZ - 1 : AbsTileZ);
                         }
                     }
@@ -1172,34 +800,27 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
         }
 
-        Memory->IsInitialized = true;
+        GameState->IsInitialized = true;
     }
 
     // NOTE(Khisrow): Transient initialization
     Assert(sizeof(transient_state) <= Memory->TransientStorageSize);    
     transient_state *TranState = (transient_state *)Memory->TransientStorage;
-    if(!TranState->IsInitialized)
-    {
+    if(!TranState->IsInitialized) {
         InitializeArena(&TranState->TranArena, Memory->TransientStorageSize - sizeof(transient_state),
                         (uint8 *)Memory->TransientStorage + sizeof(transient_state));
 
-		SubArena(&TranState->Assets.Arena, &TranState->TranArena, Megabytes(64));
-		TranState->Assets.ReadEntireFile = Memory->DEBUGPlatformReadEntireFile;
-		TranState->Assets.TranState = TranState;
-
-		for(uint32 TaskIndex = 0;
-			TaskIndex < ArrayCount(TranState->Tasks);
-			++TaskIndex)
-		{
+		TranState->HighPriorityQueue = Memory->HighPriorityQueue;
+		TranState->LowPriorityQueue = Memory->LowPriorityQueue;
+		for(uint32 TaskIndex = 0; TaskIndex < ArrayCount(TranState->Tasks); ++TaskIndex) {
 			task_with_memory *Task = TranState->Tasks + TaskIndex;
-
 			Task->BeingUsed = false;
 			SubArena(&Task->Arena, &TranState->TranArena, Megabytes(1));
 		}
 
+        TranState->Assets = AllocateGameAssets(&TranState->TranArena, Megabytes(64), TranState);
+
         // TODO(Khisrow): Pick a real number here!
-		TranState->HighPriorityQueue = Memory->HighPriorityQueue;
-		TranState->LowPriorityQueue = Memory->LowPriorityQueue;
         TranState->GroundBufferCount = 256;
         TranState->GroundBuffers = PushArray(&TranState->TranArena, TranState->GroundBufferCount, ground_buffer);
         for(uint32 GroundBufferIndex = 0;
@@ -1235,56 +856,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 Height >>= 1;
             }
         }
-
-		TranState->Assets.Grass[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/grass00.bmp");
-		TranState->Assets.Grass[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/grass01.bmp");
-
-		TranState->Assets.Stone[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground00.bmp");
-		TranState->Assets.Stone[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground01.bmp");
-		TranState->Assets.Stone[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground02.bmp");
-		TranState->Assets.Stone[3] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/ground03.bmp");
-
-		TranState->Assets.Tuft[0] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
-		TranState->Assets.Tuft[1] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
-		TranState->Assets.Tuft[2] = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile,
-				"handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
-
-		hero_bitmaps *Bitmap;
-
-		Bitmap = TranState->Assets.HeroBitmaps;
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_right_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_back_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_left_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		Bitmap->Head = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_head.bmp");
-		Bitmap->Cape = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_cape.bmp");
-		Bitmap->Torso = DEBUGLoadBMP(Thread, Memory->DEBUGPlatformReadEntireFile, "handmade_hero_legacy_art/early_data/test/test_hero_front_torso.bmp");
-		SetTopDownAlign(Bitmap, V2(72 ,182));
-		++Bitmap;
-
-		// LoadAssets(TranState, &TranState->Assets, Thread, Memory->DEBUGPlatformReadEntireFile);
 
         TranState->IsInitialized = true;
     }
@@ -1370,7 +941,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
 
     // TODO(Khisrow): Decide what our pushbuffer size is!
-    render_group *RenderGroup = AllocateRenderGroup(&TranState->Assets, &TranState->TranArena, Megabytes(4));
+    render_group *RenderGroup = AllocateRenderGroup(TranState->Assets, &TranState->TranArena, Megabytes(4));
     real32 WidthOfMonitor = 0.635f; // NOTE(Khisrow): Horizontal measurement of monitor in meters
 	real32 MetersToPixels = (real32)DrawBuffer->Width*WidthOfMonitor;
 	real32 FocalLength = 0.6f;
@@ -1521,7 +1092,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			/*
 			   NOTE(Khisrow): Pre-physics entity work
 			*/
-            hero_bitmaps *HeroBitmaps = &TranState->Assets.HeroBitmaps[Entity->FacingDirection];
+            hero_bitmaps *HeroBitmaps = &TranState->Assets->HeroBitmaps[Entity->FacingDirection];
             switch(Entity->Type)
             {
                 case EntityType_Hero:
@@ -1621,11 +1192,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 			*/
             switch(Entity->Type)
             {
-                case EntityType_Hero:
-                {
+                case EntityType_Hero: {
                     // TODO(Khisrow): Z!!!
                     real32 HeroSizeC = 2.5f;
-                    PushBitmap(RenderGroup, GAI_Shadow, HeroSizeC*1.0f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), HeroSizeC*1.0f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
                     PushBitmap(RenderGroup, &HeroBitmaps->Torso, HeroSizeC*1.2f, V3(0, 0, 0));
                     PushBitmap(RenderGroup, &HeroBitmaps->Cape, HeroSizeC*1.2f, V3(0, 0, 0));
                     PushBitmap(RenderGroup, &HeroBitmaps->Head, HeroSizeC*1.2f, V3(0, 0, 0));
@@ -1633,42 +1203,36 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     DrawHitpoints(Entity, RenderGroup);
                 } break;
 
-                case EntityType_Wall:
-                {
-                    PushBitmap(RenderGroup, GAI_Tree, 2.5f, V3(0, 0, 0));
+                case EntityType_Wall: {
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Tree), 2.5f, V3(0, 0, 0));
                 } break;
 
-                case EntityType_Stairwell:
-                {
+                case EntityType_Stairwell: {
                     PushRect(RenderGroup, V3(0, 0, 0), Entity->WalkableDim, V4(1, 0.5f, 0, 1));
                     PushRect(RenderGroup, V3(0, 0, Entity->WalkableHeight), Entity->WalkableDim, V4(1, 1, 0, 1));
                 } break;
 
-                case EntityType_Sword:
-                {
-                    PushBitmap(RenderGroup, GAI_Shadow, 0.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
-                    PushBitmap(RenderGroup, GAI_Sword, 0.5f, V3(0, 0, 0));
+                case EntityType_Sword: {
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 0.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Sword), 0.5f, V3(0, 0, 0));
                 } break;
 
-                case EntityType_Familiar:
-                {
+                case EntityType_Familiar: {
                     Entity->tBob += dt;
                     if(Entity->tBob > (2.0f*Pi32)) Entity->tBob -= (2.0f*Pi32);
                     real32 BobSin = Sin(2.0f*Entity->tBob);
-                    PushBitmap(RenderGroup, GAI_Shadow, 2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) + 0.2f*BobSin));
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) + 0.2f*BobSin));
                     PushBitmap(RenderGroup, &HeroBitmaps->Head, 2.5f, V3(0, 0, 0.25f*BobSin));
                 } break;
                 
-                case EntityType_Monstar:
-                {
-                    PushBitmap(RenderGroup, GAI_Shadow, 4.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
+                case EntityType_Monstar: {
+                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 4.5f, V3(0, 0, 0), V4(1, 1, 1, ShadowAlpha));
                     PushBitmap(RenderGroup, &HeroBitmaps->Torso, 4.5f, V3(0, 0, 0));
 
                     DrawHitpoints(Entity, RenderGroup);
                 } break;
 
-                case EntityType_Space:
-                {
+                case EntityType_Space: {
 #if 0
                     for(uint32 VolumeIndex = 0;
                         VolumeIndex < Entity->Collision->VolumeCount;
@@ -1680,10 +1244,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
                 } break;
 
-                default:
-                {
-                    InvalidCodePath;
-                } break;
+                default: { InvalidCodePath; } break;
             }
         }
     }

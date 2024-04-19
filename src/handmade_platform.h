@@ -63,6 +63,26 @@ extern "C" {
 #include <limits.h>
 #include <float.h>
     
+// typedef int8_t i8;
+// typedef int16_t i16;
+// typedef int32_t i32;
+// typedef int64_t i64;
+// typedef int32 bool;
+// 
+// typedef uint8_t u8;
+// typedef uint16_t u16;
+// typedef uint32_t u32;
+// typedef uint64_t u64;
+// 
+// typedef intptr_t iptr;
+// typedef uintptr_t uptr;
+// 
+// typedef size_t memory_index;
+//     
+// typedef float f32;
+// typedef double f64;
+
+/* TODO(Abid): Remove of this verbose types */
 typedef int8_t int8;
 typedef int16_t int16;
 typedef int32_t int32;
@@ -78,7 +98,7 @@ typedef intptr_t intptr;
 typedef uintptr_t uintptr;
 
 typedef size_t memory_index;
-    
+
 typedef float real32;
 typedef double real64;
 
@@ -139,13 +159,13 @@ typedef struct debug_read_file_result
     void *Contents;
 } debug_read_file_result;
 
-#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *Thread, void *Memory)
+#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void *Memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context *Thread, char *Filename)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(char *Filename)
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(thread_context *Thread, char *Filename, uint32 MemorySize, void *Memory)
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *Filename, uint32 MemorySize, void *Memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 enum
@@ -262,10 +282,7 @@ typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
 typedef PLATFORM_ADD_ENTRY(platform_add_entry);
 #define PLATFORM_COMPLETE_ALL_WORK(name) void name(platform_work_queue *Queue)
 typedef PLATFORM_COMPLETE_ALL_WORK(platform_complete_all_work);
-typedef struct game_memory
-{
-    bool32 IsInitialized;
-
+typedef struct game_memory {
     uint64 PermanentStorageSize;
     void *PermanentStorage; // NOTE(Khisrow): REQUIRED to be cleared to zero at startup
 
@@ -287,14 +304,14 @@ typedef struct game_memory
 #endif
 } game_memory;
 
-#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *Thread, game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
+#define GAME_UPDATE_AND_RENDER(name) void name(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 // NOTE(Khisrow): At the moment, this has to be a very fast function, it cannot be
 // more than a millisecond or so.
 // TODO(Khisrow): Reduce the pressure on this function's performance by measuring it
 // or asking about it, etc.
-#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *Thread, game_memory *Memory, game_sound_output_buffer *SoundBuffer)
+#define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *Memory, game_sound_output_buffer *SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 inline game_controller_input *GetController(game_input *Input, int unsigned ControllerIndex)

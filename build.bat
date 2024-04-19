@@ -3,7 +3,6 @@
 set CommonCompilerFlags=-O2 -MTd -Gm- -nologo -fp:fast -GR- -EHa- -Zo -FC -Oi -Z7 -WX -W4 -wd4201 -wd4100 -wd4189 -wd4505 -DHANDMADE_WIN32=1 -DHANDMADE_SLOW=1 -DHANDMADE_INTERNAL=1 
 set CommonLinkerFlags= -incremental:no -opt:ref  user32.lib Gdi32.lib winmm.lib	
 
-cd ..
 IF NOT EXIST bin mkdir bin
 pushd bin
 echo ========================================================================
@@ -19,4 +18,3 @@ cl %CommonCompilerFlags% -I..\iaca-win64 ..\src\handmade.cpp -Fmhandmade.map -LD
 del lock.tmp
 cl %CommonCompilerFlags% ..\src\win32_handmade.cpp -Fmwin32_handmade.map /link %CommonLinkerFlags%
 popd
-cd src

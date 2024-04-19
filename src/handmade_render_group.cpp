@@ -1346,8 +1346,8 @@ PushRenderElement_(render_group *Group, uint32 Size, render_group_entry_type Typ
 }
 
 inline void
-PushBitmap(render_group *Group, loaded_bitmap *Bitmap, real32 Height, v3 Offset, v4 Color = V4(1, 1, 1, 1))
-{
+PushBitmap(render_group *Group, loaded_bitmap *Bitmap, real32 Height, v3 Offset,
+           v4 Color = V4(1, 1, 1, 1)) {
 	v2 Size = V2(Height*Bitmap->WidthOverHeight, Height);
 	v2 Align = Hadamard(Bitmap->AlignPercentage, Size);
 	v3 P = Offset - V3(Align, 0);
@@ -1367,16 +1367,11 @@ PushBitmap(render_group *Group, loaded_bitmap *Bitmap, real32 Height, v3 Offset,
 }
 
 inline void
-PushBitmap(render_group *Group, game_assets_id ID, real32 Height, v3 Offset, v4 Color = V4(1, 1, 1, 1))
-{
+PushBitmap(render_group *Group, bitmap_id ID, real32 Height, v3 Offset, v4 Color = V4(1, 1, 1, 1)) {
 	loaded_bitmap *Bitmap = GetBitmap(Group->Assets, ID);
-	if(Bitmap)
-    {
-        PushBitmap(Group, Bitmap, Height, Offset, Color);
-    }
-    else
-    {
-        LoadAsset(Group->Assets, ID);
+	if(Bitmap) PushBitmap(Group, Bitmap, Height, Offset, Color);
+    else {
+        LoadBitmap(Group->Assets, ID);
         ++Group->MissingResourceCount;
     }
 }
