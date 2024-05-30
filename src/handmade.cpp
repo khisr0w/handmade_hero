@@ -15,16 +15,14 @@
 #include "handmade_asset.cpp"
 
 internal void
-GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz)
-{
+GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, int ToneHz) {
     int16 ToneVolume = 3000;
     int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;
 
     int16 *SampleOut = SoundBuffer->Samples;
     for(int SampleIndex = 0;
         SampleIndex < SoundBuffer->SampleCount;
-        ++SampleIndex)
-    {
+        ++SampleIndex) {
         // TODO(Khisrow): Draw this out for me!!!
 #if 0
         real32 SineValue = sinf(GameState->tSine);
@@ -45,14 +43,12 @@ GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer, in
     }
 }
 
-struct add_low_entity_result
-{
+struct add_low_entity_result {
     low_entity *Low;
     uint32 LowIndex;
 };
 internal add_low_entity_result
-AddLowEntity(game_state *GameState, entity_type Type, world_position P)
-{
+AddLowEntity(game_state *GameState, entity_type Type, world_position P) {
     Assert(GameState->LowEntityCount < ArrayCount(GameState->LowEntities));
     uint32 EntityIndex = GameState->LowEntityCount++;
    
@@ -77,8 +73,7 @@ AddLowEntity(game_state *GameState, entity_type Type, world_position P)
 
 internal add_low_entity_result
 AddGroundedEntity(game_state *GameState, entity_type Type, world_position P,
-                  sim_entity_collision_volume_group *Collision)
-{
+                  sim_entity_collision_volume_group *Collision) {
     add_low_entity_result Entity = AddLowEntity(GameState, Type, P);
     Entity.Low->Sim.Collision = Collision;
     return Entity;
@@ -86,8 +81,7 @@ AddGroundedEntity(game_state *GameState, entity_type Type, world_position P,
 
 inline world_position
 ChunkPositionFromTilePosition(world *World, int32 AbsTileX, int32 AbsTileY, int32 AbsTileZ,
-                              v3 AdditionalOffset = V3(0, 0, 0))
-{
+                              v3 AdditionalOffset = V3(0, 0, 0)) {
     world_position BasePos = {};
 
     real32 TileSideInMeters = 1.4f;
@@ -103,8 +97,7 @@ ChunkPositionFromTilePosition(world *World, int32 AbsTileX, int32 AbsTileY, int3
 }
 
 internal add_low_entity_result
-AddStandardRoom(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
+AddStandardRoom(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Space, P,
                                                      GameState->StandardRoomCollision);
@@ -114,8 +107,7 @@ AddStandardRoom(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 
 }
 
 internal add_low_entity_result
-AddWall(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
+AddWall(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Wall, P,
                                                      GameState->WallCollision);
@@ -125,8 +117,7 @@ AddWall(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ
 }
 
 internal add_low_entity_result
-AddStair(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
+AddStair(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Stairwell, P,
                                                      GameState->StairCollision);
@@ -138,14 +129,12 @@ AddStair(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTile
 }
 
 internal void
-InitHitPoints(low_entity *EntityLow, uint32 HitPointCount)
-{
+InitHitPoints(low_entity *EntityLow, uint32 HitPointCount) {
     Assert(HitPointCount <= ArrayCount(EntityLow->Sim.HitPoint));
     EntityLow->Sim.HitPointMax = HitPointCount;
     for(uint32 HitPointIndex = 0;
         HitPointIndex < EntityLow->Sim.HitPointMax;
-        ++HitPointIndex)
-    {
+        ++HitPointIndex) {
         hit_point *HitPoint = EntityLow->Sim.HitPoint + HitPointIndex;
         HitPoint->Flags = 0;
         HitPoint->FilledAmount = HIT_POINT_SUB_COUNT;
@@ -153,8 +142,7 @@ InitHitPoints(low_entity *EntityLow, uint32 HitPointCount)
 }
 
 internal add_low_entity_result
-AddSword(game_state *GameState)
-{
+AddSword(game_state *GameState) {
     add_low_entity_result Entity = AddLowEntity(GameState, EntityType_Sword, NullPosition());
     Entity.Low->Sim.Collision = GameState->SwordCollision;
 
@@ -164,8 +152,7 @@ AddSword(game_state *GameState)
 }
 
 internal add_low_entity_result
-AddPlayer(game_state *GameState)
-{
+AddPlayer(game_state *GameState) {
     world_position P = GameState->CameraP;
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Hero, P,
                                                      GameState->PlayerCollision);
@@ -176,8 +163,7 @@ AddPlayer(game_state *GameState)
     add_low_entity_result Sword = AddSword(GameState);
     Entity.Low->Sim.Sword.Index = Sword.LowIndex;
 
-    if(GameState->CameraFollowingEntityIndex == 0)
-    {
+    if(GameState->CameraFollowingEntityIndex == 0) {
         GameState->CameraFollowingEntityIndex = Entity.LowIndex;
     }
 
@@ -185,8 +171,7 @@ AddPlayer(game_state *GameState)
 }
 
 internal add_low_entity_result
-AddMonstar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
+AddMonstar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Monstar, P,
                                                      GameState->MonstarCollision);
@@ -198,8 +183,7 @@ AddMonstar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTi
 }
 
 internal add_low_entity_result
-AddFamiliar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ)
-{
+AddFamiliar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsTileZ) {
     world_position P = ChunkPositionFromTilePosition(GameState->World, AbsTileX, AbsTileY, AbsTileZ);
     add_low_entity_result Entity = AddGroundedEntity(GameState, EntityType_Familiar, P,
                                                      GameState->FamiliarCollision);
@@ -209,22 +193,18 @@ AddFamiliar(game_state *GameState, uint32 AbsTileX, uint32 AbsTileY, uint32 AbsT
 }
 
 internal void
-DrawHitpoints(sim_entity *Entity, render_group *PieceGroup)
-{
-    if(Entity->HitPointMax >= 1)
-    {
+DrawHitpoints(sim_entity *Entity, render_group *PieceGroup) {
+    if(Entity->HitPointMax >= 1) {
         v2 HealthDim = {0.2f, 0.2f};
         real32 SpacingX = 1.5f*HealthDim.x;
         v2 HitP = {-0.5f*(Entity->HitPointMax - 1)*SpacingX, -0.25f};
         v2 dHitP = {SpacingX, 0.0f};
         for(uint32 HealthIndex = 0;
             HealthIndex < Entity->HitPointMax;
-            ++HealthIndex)
-        {
+            ++HealthIndex) {
             hit_point *HitPoint = Entity->HitPoint + HealthIndex;
             v4 Color = {1.0f, 0.0f, 0.0f, 1.0f};
-            if(HitPoint->FilledAmount == 0)
-            {
+            if(HitPoint->FilledAmount == 0) {
                 Color = V4(0.2f, 0.2f, 0.2f, 1.0f);
             }
 
@@ -397,7 +377,6 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 	task_with_memory *Task = BeginTaskWithMemory(TranState);
 	if(Task) {
 		fill_ground_chunk_work *Work = PushStruct(&Task->Arena, fill_ground_chunk_work);
-		GroundBuffer->P = *ChunkP;
 
 		// TODO(Khisrow): Need to be able to set an orthographic display mode here!!!
 		loaded_bitmap *Buffer = &GroundBuffer->Bitmap;
@@ -413,6 +392,10 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 		render_group *RenderGroup = AllocateRenderGroup(TranState->Assets, &Task->Arena, 0); // (uint32)GetArenaSizeRemaining(&Task->Arena));
 		Orthographic(RenderGroup, Buffer->Width, Buffer->Height, (Buffer->Width - 2) / Width);
 		Clear(RenderGroup, V4(1.0f, 0.0f, 1.0f, 1.0f));
+
+        Work->RenderGroup = RenderGroup;
+        Work->Buffer = Buffer;
+        Work->Task = Task;
 
 		for(int32 ChunkOffsetY = -1; ChunkOffsetY <= 1; ++ChunkOffsetY) {
 			for(int32 ChunkOffsetX = -1; ChunkOffsetX <= 1; ++ChunkOffsetX) {
@@ -432,13 +415,8 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 				v2 Center = V2(ChunkOffsetX*Width, ChunkOffsetY*Height);
 
 				for(uint32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
-					loaded_bitmap *Stamp;
-					if(RandomChoice(&Series, 2)) {
-						Stamp = TranState->Assets->Grass + RandomChoice(&Series, ArrayCount(TranState->Assets->Grass));
-					} else {
-						Stamp = TranState->Assets->Stone + RandomChoice(&Series, ArrayCount(TranState->Assets->Stone));
-					}
-
+                    bitmap_id Stamp = RandomAssetFrom(TranState->Assets, RandomChoice(&Series, 2) ? Asset_Grass : Asset_Stone,
+                                                      &Series);
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
 					PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0.0f), Color);
 				}
@@ -458,7 +436,7 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 				v2 Center = V2(ChunkOffsetX*Width, ChunkOffsetY*Height);
 
 				for(uint32 GrassIndex = 0; GrassIndex < 50; ++GrassIndex) {
-					loaded_bitmap *Stamp = TranState->Assets->Tuft + RandomChoice(&Series, ArrayCount(TranState->Assets->Tuft));
+					bitmap_id Stamp = RandomAssetFrom(TranState->Assets, Asset_Tuft, &Series);
 
 					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
 					PushBitmap(RenderGroup, Stamp, 0.1f, V3(P, 0.0f));
@@ -467,12 +445,9 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 		}
 
         if(AllResourcesPresent(RenderGroup)) {
-            Work->RenderGroup = RenderGroup;
-            Work->Buffer = Buffer;
-            Work->Task = Task;
-
+            GroundBuffer->P = *ChunkP;
             PlatformAddEntry(TranState->LowPriorityQueue, FillGroundChunkWork, Work);
-        }
+        } else EndTaskWithMemory(Work->Task);
 	}
 }
 

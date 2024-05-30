@@ -38,12 +38,14 @@ enum asset_tag_id {
 enum asset_type_id {
     Asset_None,
 
-    Asset_Backdrop,
     Asset_Shadow,
     Asset_Tree,
     Asset_Sword,
-    Asset_Stairwell,
     Asset_Rock,
+
+    Asset_Grass,
+    Asset_Tuft,
+    Asset_Stone,
 
 	Asset_Count,
 };
@@ -66,13 +68,8 @@ struct asset {
 };
 
 struct asset_bitmap_info {
+    char *FileName;
     v2 AlignPercentage;
-    real32 WidthOverHeight;
-    int32 Width;
-    int32 Height;
-
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagCount;
 };
 
 struct game_assets {
@@ -81,6 +78,7 @@ struct game_assets {
 	memory_arena Arena;
 
     uint32 BitmapCount;
+    asset_bitmap_info *BitmapInfos;
     asset_slot *Bitmaps;
 
     uint32 SoundCount;
@@ -94,13 +92,14 @@ struct game_assets {
 
     asset_type AssetTypes[Asset_Count];
 
-	// NOTE(Khisrow): Array'd Assets
-    loaded_bitmap Grass[2];
-    loaded_bitmap Stone[4];
-    loaded_bitmap Tuft[3];
     
 	// NOTE(Khisrow) Structured assets
     hero_bitmaps HeroBitmaps[4];
+
+    /* TODO(Abid): Only used here for debugging and must be removed once pak file is in place */
+    uint32 DEBUGUsedBitmapCount;
+    uint32 DEBUGUsedAssetCount;
+    asset_type *DEBUGAssetType;
 };
 
 struct bitmap_id { uint32 Value; };
@@ -115,7 +114,6 @@ GetBitmap(game_assets *Assets, bitmap_id ID) {
 
 internal void LoadBitmap(game_assets *Assets, bitmap_id ID);
 internal void LoadSound(game_assets *Assets, sound_id ID);
-
 
 #define HANDMADE_ASSET_H
 #endif

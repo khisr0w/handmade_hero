@@ -41,8 +41,17 @@ TopDownAlign(loaded_bitmap *Bitmap, v2 Align) {
     return Align;
 }            
 
+internal void
+SetTopDownAlign(hero_bitmaps *Bitmap, v2 Align) {
+    Align = TopDownAlign(&Bitmap->Head, Align);
+
+    Bitmap->Head.AlignPercentage = Align;
+    Bitmap->Cape.AlignPercentage = Align;
+    Bitmap->Torso.AlignPercentage = Align;
+}
+
 internal loaded_bitmap
-DEBUGLoadBMP(char *FileName, int32 AlignX, int32 TopDownAlignY) {
+DEBUGLoadBMP(char *FileName, v2 AlignPercentage = V2(0.5f, 0.5f)) {
     loaded_bitmap Result = {};
     
     debug_read_file_result ReadResult = DEBUGPlatformReadEntireFile(FileName);    
@@ -52,7 +61,7 @@ DEBUGLoadBMP(char *FileName, int32 AlignX, int32 TopDownAlignY) {
         Result.Memory = Pixels;
         Result.Width = Header->Width;
         Result.Height = Header->Height;
-        Result.AlignPercentage = TopDownAlign(&Result, V2i(AlignX, TopDownAlignY));
+        Result.AlignPercentage = AlignPercentage;
         Result.WidthOverHeight = SafeRatio0((real32)Result.Width, (real32)Result.Height);
         
         Assert(Result.Height >= 0);
@@ -126,32 +135,19 @@ DEBUGLoadBMP(char *FileName, int32 AlignX, int32 TopDownAlignY) {
     return Result;
 }
 
-internal loaded_bitmap
-DEBUGLoadBMP(char *FileName) {
-    loaded_bitmap Result = DEBUGLoadBMP(FileName, 0, 0);
-    Result.AlignPercentage = V2(0.5f, 0.5f);
-    return Result;
-}
-
 struct load_bitmap_work {
 	game_assets *Assets;
-	char *FileName;
 	bitmap_id ID;
 	task_with_memory *Task;
 	loaded_bitmap *Bitmap;
-
-    bool32 HasAlignment;
-    int32 AlignX;
-    int32 TopDownAlignY;
 
     asset_state FinalState;
 };
 internal PLATFORM_WORK_QUEUE_CALLBACK(LoadBitmapWork) {
 	load_bitmap_work *Work = (load_bitmap_work *)Data;
 
-    if(Work->HasAlignment) {
-        *Work->Bitmap = DEBUGLoadBMP(Work->FileName, Work->AlignX, Work->TopDownAlignY);
-    } else *Work->Bitmap = DEBUGLoadBMP(Work->FileName);
+    asset_bitmap_info *Info = Work->Assets->BitmapInfos + Work->ID.Value;
+    *Work->Bitmap = DEBUGLoadBMP(Info->FileName, Info->AlignPercentage);
 
     // NOTE(Abid): Memory barrier
     CompletePreviousWritesBeforeFutureWrites;
@@ -173,39 +169,9 @@ LoadBitmap(game_assets *Assets, bitmap_id ID) {
 
             Work->Assets = Assets;
             Work->ID = ID;
-            Work->FileName = "";
             Work->Task = Task;
             Work->Bitmap = PushStruct(&Assets->Arena, loaded_bitmap);
-            Work->HasAlignment = false;
             Work->FinalState = AssetState_Loaded;
-
-            switch(ID.Value) {
-                case Asset_Backdrop: {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test/test_background.bmp";
-                } break;
-                case Asset_Shadow: {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test/test_hero_shadow.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 72;
-                    Work->TopDownAlignY= 182;
-                } break;
-                case Asset_Tree: {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/tree00.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 40;
-                    Work->TopDownAlignY= 80;
-                } break;
-                case Asset_Sword: {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock03.bmp";
-                    Work->HasAlignment = true;
-                    Work->AlignX = 29;
-                    Work->TopDownAlignY= 10;
-                } break;
-                case Asset_Stairwell: {
-                    Work->FileName = "handmade_hero_legacy_art/early_data/test2/rock02.bmp";
-                    // 29, 10
-                } break;
-            }
 
             // NOTE(Khisrow): WARNING(Khisrow): Should be before switch?
             PlatformAddEntry(Assets->TranState->LowPriorityQueue, LoadBitmapWork, Work);
@@ -215,6 +181,21 @@ LoadBitmap(game_assets *Assets, bitmap_id ID) {
 
 internal void
 LoadSound(game_assets *Assets, sound_id ID) {
+}
+
+internal bitmap_id 
+RandomAssetFrom(game_assets *Assets, asset_type_id TypeID, random_series *Series) {
+    bitmap_id Result = {};
+
+    asset_type *Type = Assets->AssetTypes + TypeID;
+    if(Type->FirstAssetIndex != Type->OnePastLastAssetIndex) {
+        uint32 Count = (Type->OnePastLastAssetIndex - Type->FirstAssetIndex);
+        uint32 Choice = RandomChoice(Series, Count);
+        asset *Asset = Assets->Assets + Type->FirstAssetIndex + Choice;
+        Result.Value = Asset->SlotID;
+    }
+
+    return Result;
 }
 
 internal bitmap_id
@@ -230,14 +211,39 @@ GetFirstBitmapID(game_assets *Assets, asset_type_id TypeID) {
 
     return Result;
 }
+internal bitmap_id 
+DEBUGAddBitmapInfo(game_assets *Assets, char *FileName, v2 AlignPercentage) {
+    Assert(Assets->DEBUGUsedBitmapCount < Assets->BitmapCount);
+    bitmap_id ID = { Assets->DEBUGUsedBitmapCount++ };
+    asset_bitmap_info *Info = Assets->BitmapInfos + ID.Value;
+    Info->AlignPercentage = AlignPercentage;
+    Info->FileName = FileName;
+
+    return ID;
+}
+internal void
+BeginAssetType(game_assets *Assets, asset_type_id TypeID) {
+    Assert(Assets->DEBUGAssetType == 0);
+    Assets->DEBUGAssetType = Assets->AssetTypes + TypeID;
+
+    Assets->DEBUGAssetType->FirstAssetIndex = Assets->DEBUGUsedAssetCount;
+    Assets->DEBUGAssetType->OnePastLastAssetIndex = Assets->DEBUGAssetType->FirstAssetIndex;
+}
 
 internal void
-SetTopDownAlign(hero_bitmaps *Bitmap, v2 Align) {
-    Align = TopDownAlign(&Bitmap->Head, Align);
+AddBitmapAsset(game_assets *Assets, char *FileName, v2 AlignPercentage = V2(0.5f, 0.5f)) {
+    Assert(Assets->DEBUGAssetType);
+    asset *Asset = Assets->Assets + Assets->DEBUGAssetType->OnePastLastAssetIndex++;
+    Asset->FirstTagIndex = 0;
+    Asset->OnePastLastTagIndex = 0;
+    Asset->SlotID = DEBUGAddBitmapInfo(Assets, FileName, AlignPercentage).Value;
+}
 
-    Bitmap->Head.AlignPercentage = Align;
-    Bitmap->Cape.AlignPercentage = Align;
-    Bitmap->Torso.AlignPercentage = Align;
+internal void
+EndAssetType(game_assets *Assets) {
+    Assert(Assets->DEBUGAssetType);
+    Assets->DEBUGUsedAssetCount = Assets->DEBUGAssetType->OnePastLastAssetIndex;
+    Assets->DEBUGAssetType = 0;
 }
 
 internal game_assets *
@@ -246,43 +252,51 @@ AllocateGameAssets(memory_arena *Arena, memory_index Size, transient_state *Tran
     SubArena(&Assets->Arena, Arena, Size);
     Assets->TranState = TranState;
 
-    Assets->BitmapCount = Asset_Count;
+    Assets->BitmapCount = 256*Asset_Count;
+    Assets->BitmapInfos = PushArray(Arena, Assets->BitmapCount, asset_bitmap_info);
     Assets->Bitmaps = PushArray(Arena, Assets->BitmapCount, asset_slot);
 
     Assets->SoundCount = 1;
     Assets->Sounds = PushArray(Arena, Assets->SoundCount, asset_slot);
 
-    Assets->TagCount = 0;
-    Assets->Tags = 0;
-
-    Assets->AssetCount = Assets->BitmapCount;
+    Assets->AssetCount = Assets->SoundCount + Assets->BitmapCount;
     Assets->Assets = PushArray(Arena, Assets->AssetCount, asset);
 
-    for(uint32 AssetID = 0; AssetID < Assets->AssetCount; ++AssetID) {
-        asset_type *Type = Assets->AssetTypes + AssetID;
-        Type->FirstAssetIndex = AssetID;
-        Type->OnePastLastAssetIndex = AssetID + 1;
+    /* NOTE(Abid): Its best to leave the 0'th index for a null slot. */
+    Assets->DEBUGUsedAssetCount = 1;
+    Assets->DEBUGUsedBitmapCount = 1;
 
-        asset *Asset = Assets->Assets + Type->FirstAssetIndex;
-        Asset->FirstTagIndex = 0;
-        Asset->OnePastLastTagIndex = 0;
-        Asset->SlotID = Type->FirstAssetIndex;
-    }
+    BeginAssetType(Assets, Asset_Shadow);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test/test_hero_shadow.bmp", V2(0.5f, 0.156682929f));
+    EndAssetType(Assets);
 
-    Assets->Grass[0] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/grass00.bmp");
-    Assets->Grass[1] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/grass01.bmp");
+    BeginAssetType(Assets, Asset_Tree);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/tree00.bmp", V2(0.493827164f, 0.295652182f));
+    EndAssetType(Assets);
 
-    Assets->Stone[0] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/ground00.bmp");
-    Assets->Stone[1] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/ground01.bmp");
-    Assets->Stone[2] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/ground02.bmp");
-    Assets->Stone[3] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/ground03.bmp");
+    BeginAssetType(Assets, Asset_Sword);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/rock03.bmp", V2(0.5f, 0.65625f));
+    EndAssetType(Assets);
 
-    Assets->Tuft[0] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
-    Assets->Tuft[1] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
-    Assets->Tuft[2] = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
+    BeginAssetType(Assets, Asset_Grass);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/grass00.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/grass01.bmp");
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Tuft);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/tuft00.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/tuft01.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/tuft02.bmp");
+    EndAssetType(Assets);
+
+    BeginAssetType(Assets, Asset_Stone);
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/ground00.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/ground01.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/ground02.bmp");
+    AddBitmapAsset(Assets, "handmade_hero_legacy_art/early_data/test2/ground03.bmp");
+    EndAssetType(Assets);
 
     hero_bitmaps *Bitmap;
-
     Bitmap = Assets->HeroBitmaps;
     Bitmap->Head = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test/test_hero_right_head.bmp");
     Bitmap->Cape = DEBUGLoadBMP("handmade_hero_legacy_art/early_data/test/test_hero_right_cape.bmp");
