@@ -7,18 +7,25 @@
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
 /*
-	TODO:
+	TODO(Abid):
 
 	- Asset streaming
+      - File format
+      - Memory management
+
+	- Audio
+	  - Sound effect triggers
+	  - Ambient sounds
+	  - Music
 
 	- Rendering
-		- Straighten out all coordinate systems
-		  - Screen
-		  - World
-		  - Texture
-		- Particle Systems
-		- Lighting
-		- Final Optimization
+	  - Straighten out all coordinate systems
+	    - Screen
+	    - World
+	    - Texture
+	  - Particle Systems
+	  - Lighting
+	  - Final Optimization
 
 	- Debug code
   	  - Fonts
@@ -26,11 +33,6 @@
 	  - Diagramming
 	  - (A LITTLE GUI, but only a little!) Switches / sliders / etc.
 	  - Thread Visualization
-
-	- Audio
-	  - Sound effect triggers
-	  - Ambient sounds
-	  - Music
 
 	- Metagame / save game?
 	ARCHITECTURE EXPLORATION

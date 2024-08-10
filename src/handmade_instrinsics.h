@@ -23,114 +23,119 @@ inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 Expecte
     return (Result);
 }
 #else
-	// TODO(Abid); Need gcc/LLVM equivalents!
+	// TODO(Abid); Need gcc/clang equivalents!
 #endif
 
-inline int32
-SignOf(int32 Value) {
-    int32 Result = (Value >= 0) ? 1 : -1;
+inline f32
+SignOf(f32 Value) {
+    f32 Result = (Value >= 0.f) ? 1.0f : -1.0f;
+    return Result;
+}
+inline i32
+SignOf(i32 Value) {
+    i32 Result = (Value >= 0) ? 1 : -1;
     return Result;
 }
 
-inline real32
-SquareRoot(real32 Real32) {
+inline f32
+SquareRoot(f32 Real32) {
     real32 Result = sqrtf(Real32);
     return Result;
 }
 
-inline real32
-AbsoluteValue(real32 Real32) {
-    real32 Result = (real32 )fabs(Real32);
+inline f32
+AbsoluteValue(f32 Real32) {
+    real32 Result = (f32 )fabs(Real32);
     return Result;
 }
 
-inline uint32
-RotateLeft(uint32 Value, int32 Amount) {
+inline u32
+RotateLeft(uint32 Value, i32 Amount) {
 #if COMPILER_MSVC
-    uint32 Result = _rotl(Value, Amount);
+    u32 Result = _rotl(Value, Amount);
 #else
     // TODO(Abid): Actually port this to other compiler platforms!
     Amount &= 31;
-    uint32 Result = ((Value << Amount) | (Value >> (32 - Amount)));
+    u32 Result = ((Value << Amount) | (Value >> (32 - Amount)));
 #endif
 
     return Result;
 }
 
-inline uint32
-RotateRight(uint32 Value, int32 Amount) {
+inline u32
+RotateRight(u32 Value, i32 Amount) {
 #if COMPILER_MSVC
-    uint32 Result = _rotr(Value, Amount);
+    u32 Result = _rotr(Value, Amount);
 #else
     // TODO(Abid): Actually port this to other compiler platforms!
     Amount &= 31;
-    uint32 Result = ((Value >> Amount) | (Value << (32 - Amount)));
+    u32 Result = ((Value >> Amount) | (Value << (32 - Amount)));
 #endif
 
     return Result;
 }
 
-inline int32
-RoundReal32ToInt32(real32 Real32) {
-    int32 Result = (int32)roundf(Real32);
+inline i32
+RoundReal32ToInt32(f32 Real32) {
+    i32 Result = (i32)roundf(Real32);
     return Result;
 }
 
-inline uint32
-RoundReal32ToUInt32(real32 Real32) {
-    uint32 Result = (uint32)roundf(Real32);
+inline u32
+RoundReal32ToUInt32(f32 Real32) {
+    u32 Result = (u32)roundf(Real32);
     return Result;
 }
 
-inline int32 
-FloorReal32ToInt32(real32 Real32) {
-    int32 Result = (int32)floorf(Real32);
+inline i32 
+FloorReal32ToInt32(f32 Real32) {
+    i32 Result = (i32)floorf(Real32);
     return Result;
 }
 
-inline int32 
-CeilReal32ToInt32(real32 Real32) {
-    int32 Result = (int32)ceilf(Real32);
+inline i32 
+CeilReal32ToInt32(f32 Real32) {
+    i32 Result = (i32)ceilf(Real32);
     return Result;
 }
 
-inline int32
-TruncateReal32ToInt32(real32 Real32) {
-    int32 Result = (int32)Real32;
+inline i32
+TruncateReal32ToInt32(f32 Real32) {
+    i32 Result = (i32)Real32;
     return Result;
 }
 
-inline real32
-Sin(real32 Angle) {
-    real32 Result = sinf(Angle);
+inline f32
+Sin(f32 Angle) {
+    f32 Result = sinf(Angle);
     return Result;
 }
 
-inline real32
-Cos(real32 Angle) {
-    real32 Result = cosf(Angle);
+inline f32
+Cos(f32 Angle) {
+    f32 Result = cosf(Angle);
     return Result;
 }
 
-inline real32
-ATan2(real32 Y, real32 X) {
-    real32 Result = atan2f(Y, X);
+inline f32
+ATan2(f32 Y, f32 X) {
+    f32 Result = atan2f(Y, X);
     return Result;
 }
 
 struct bit_scan_result {
     bool32 Found;
-    uint32 Index;
+    u32 Index;
 };
 inline bit_scan_result
-FindLeastSignificantSetBit(uint32 Value)
+FindLeastSignificantSetBit(u32 Value)
 {
     bit_scan_result Result = {};
 
 #if COMPILER_MSVC
     Result.Found = _BitScanForward((unsigned long *)&Result.Index, Value);
 #else
-    for(uint32 Test = 0; Test < 32; ++Test) {
+    for(u32 Test = 0; Test < 32; ++Test) {
         if(Value & (1 << Test)) {
             Result.Index = Test;
             Result.Found = true;
