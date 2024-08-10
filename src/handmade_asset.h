@@ -8,13 +8,6 @@
 
 #if !defined(HANDMADE_ASSET_H)
 
-struct hero_bitmaps
-{
-    loaded_bitmap Head;
-    loaded_bitmap Cape;
-    loaded_bitmap Torso;
-};
-
 enum asset_state
 {
 	AssetState_Unloaded,
@@ -31,6 +24,7 @@ enum asset_tag_id {
 
     Tag_Smoothness,
     Tag_Flatness,
+    Tag_FacingDirection, /* Angle in radiants off of due right. */
 
     Tag_Count,
 };
@@ -46,6 +40,10 @@ enum asset_type_id {
     Asset_Grass,
     Asset_Tuft,
     Asset_Stone,
+
+    Asset_Head,
+    Asset_Cape,
+    Asset_Torso,
 
 	Asset_Count,
 };
@@ -67,13 +65,17 @@ struct asset {
     uint32 SlotID;
 };
 
+struct asset_vector {
+    f32 E[Tag_Count];
+};
+
 struct asset_bitmap_info {
     char *FileName;
     v2 AlignPercentage;
 };
 
 struct game_assets {
-	// TODO(Khisrow): Not thrilled about this back-pointer
+	// TODO(Abid): Not thrilled about this back-pointer
 	struct transient_state *TranState;
 	memory_arena Arena;
 
@@ -88,18 +90,21 @@ struct game_assets {
     asset *Assets;
 
     uint32 TagCount;
-    asset_type *Tags;
+    asset_tag *Tags;
 
     asset_type AssetTypes[Asset_Count];
 
     
-	// NOTE(Khisrow) Structured assets
-    hero_bitmaps HeroBitmaps[4];
+	// NOTE(Abid) Structured assets
+    // hero_bitmaps HeroBitmaps[4];
 
     /* TODO(Abid): Only used here for debugging and must be removed once pak file is in place */
+    /* NOTE(Abid): Hacky way to turn our asset allocation into a state machine */
     uint32 DEBUGUsedBitmapCount;
     uint32 DEBUGUsedAssetCount;
+    uint32 DEBUGUsedTagCount;
     asset_type *DEBUGAssetType;
+    asset *DEBUGAsset;
 };
 
 struct bitmap_id { uint32 Value; };

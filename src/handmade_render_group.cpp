@@ -133,7 +133,7 @@ SRGBBilinearBlend(bilinear_sample TexelSample, real32 fX, real32 fY)
     v4 TexelC = Unpack4x8(TexelSample.C);
     v4 TexelD = Unpack4x8(TexelSample.D);
 
-    // NOTE(Khisrow): Go from sRGB to "linear" brightness space
+    // NOTE(Abid): Go from sRGB to "linear" brightness space
     TexelA = SRGB255ToLinear1(TexelA);
     TexelB = SRGB255ToLinear1(TexelB);
     TexelC = SRGB255ToLinear1(TexelC);
@@ -150,7 +150,7 @@ inline v3
 SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, environment_map *Map,
                      real32 DistanceFromMapInZ)
 {
-    /* NOTE(Khisrow):
+    /* NOTE(Abid):
 
        ScreenSpaceUV tells us where the ray is being cast _from_ in
        normalized screen coordinates.
@@ -164,27 +164,27 @@ SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, env
        in meters.
     */
 
-    // NOTE(Khisrow): Pick which LOD to sample from
+    // NOTE(Abid): Pick which LOD to sample from
     uint32 LODIndex = (uint32)(Roughness*(real32)(ArrayCount(Map->LOD) - 1) + 0.5f);
     Assert(LODIndex < ArrayCount(Map->LOD));
 
     loaded_bitmap *LOD = &Map->LOD[LODIndex];
 
-    // NOTE(Khisrow): Compute the distance to the map and the scaling
+    // NOTE(Abid): Compute the distance to the map and the scaling
     // factor for meters-to-UVs
-    real32 UVsPerMeter = 0.1f; // TODO(Khisrow): Parameterize this, and should be different for X and Y based on map!
+    real32 UVsPerMeter = 0.1f; // TODO(Abid): Parameterize this, and should be different for X and Y based on map!
     real32 C = (UVsPerMeter*DistanceFromMapInZ) / SampleDirection.y;
     v2 Offset = C * V2(SampleDirection.x, SampleDirection.z);
 
-    // NOTE(Khisrow): Find the intersection point
+    // NOTE(Abid): Find the intersection point
     v2 UV = ScreenSpaceUV + Offset;
 
-    // NOTE(Khisrow): Clamp to the valid range
+    // NOTE(Abid): Clamp to the valid range
     UV.x = Clamp01(UV.x);
     UV.y = Clamp01(UV.y);
 
-    // NOTE(Khisrow): Bilinear sample
-    // TODO(Khisrow): Formalize texture boundaries!!!
+    // NOTE(Abid): Bilinear sample
+    // TODO(Abid): Formalize texture boundaries!!!
     real32 tX = ((UV.x*(real32)(LOD->Width - 2)));
     real32 tY = ((UV.y*(real32)(LOD->Height - 2)));
     
@@ -198,7 +198,7 @@ SampleEnvironmentMap(v2 ScreenSpaceUV, v3 SampleDirection, real32 Roughness, env
     Assert((Y >= 0) && (Y < LOD->Height));
 
 #if 0
-    // NOTE(Khisrow): Turn this on to see where in the map you're sampling!
+    // NOTE(Abid): Turn this on to see where in the map you're sampling!
     uint8 *TexelPtr = ((uint8 *)LOD->Memory) + Y*LOD->Pitch + X*sizeof(uint32);
     *(uint32 *)TexelPtr = 0xFFFFFFFF;
 #endif
@@ -219,7 +219,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
 {
     BEGIN_TIMED_BLOCK(DrawRectangleSlowly);
 
-    // NOTE(Khisrow): Premultiply color up front   
+    // NOTE(Abid): Premultiply color up front   
     Color.rgb *= Color.a;
 
     real32 XAxisLength = Length(XAxis);
@@ -228,7 +228,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
     v2 NxAxis = (YAxisLength / XAxisLength) * XAxis;
     v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
 
-    // NOTE(Khisrow): NzScale could be a parameter if we want people to
+    // NOTE(Abid): NzScale could be a parameter if we want people to
     // have control over the amount of scaling in the Z direction
     // that the normals appear to have.
     real32 NzScale = 0.5f*(XAxisLength + YAxisLength);
@@ -247,7 +247,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
     real32 InvWidthMax = 1.0f / (real32)WidthMax;
     real32 InvHeightMax = 1.0f / (real32)HeightMax;
 
-    // TODO(Khisrow): This will need to be specified separately!!!
+    // TODO(Abid): This will need to be specified separately!!!
     real32 OriginZ = 0.0f;
     real32 OriginY = (Origin + 0.5f*XAxis + 0.5f*YAxis).y;
     real32 FixedCastY = InvHeightMax*OriginY;
@@ -297,8 +297,8 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
             v2 PixelP = V2i(X, Y);
             v2 d = PixelP - Origin;
             
-            // TODO(Khisrow): PerpInner
-            // TODO(Khisrow): Simpler origin
+            // TODO(Abid): PerpInner
+            // TODO(Abid): Simpler origin
             real32 Edge0 = Inner(d, -Perp(XAxis));
             real32 Edge1 = Inner(d - XAxis, -Perp(YAxis));
             real32 Edge2 = Inner(d - XAxis - YAxis, Perp(XAxis));
@@ -319,12 +319,12 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                 real32 U = InvXAxisLengthSq*Inner(d, XAxis);
                 real32 V = InvYAxisLengthSq*Inner(d, YAxis);
 #if 0
-                // TODO(Khisrow): SSE clamping.
+                // TODO(Abid): SSE clamping.
                 Assert((U >= 0.0f) && (U <= 1.0f));
                 Assert((V >= 0.0f) && (V <= 1.0f));
 #endif
                 
-                // TODO(Khisrow): Formalize texture boundaries!!!
+                // TODO(Abid): Formalize texture boundaries!!!
                 real32 tX = ((U*(real32)(Texture->Width - 2)));
                 real32 tY = ((V*(real32)(Texture->Height - 2)));
                 
@@ -354,18 +354,18 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                                      Lerp(NormalC, fX, NormalD));
 
                     Normal = UnscaleAndBiasNormal(Normal);
-                    // TODO(Khisrow): Do we really need to do this?
+                    // TODO(Abid): Do we really need to do this?
 
                     Normal.xy = Normal.x*NxAxis + Normal.y*NyAxis;
                     Normal.z *= NzScale;
                     Normal.xyz = Normalize(Normal.xyz);
                     
-                    // NOTE(Khisrow): The eye vector is always assumed to be [0, 0, 1]
+                    // NOTE(Abid): The eye vector is always assumed to be [0, 0, 1]
                     // This is just the simplified version of the reflection -e + 2e^T N N
                     v3 BounceDirection = 2.0f*Normal.z*Normal.xyz;
                     BounceDirection.z -= 1.0f;
 
-                    // TODO(Khisrow): Eventually we need to support two mappings,
+                    // TODO(Abid): Eventually we need to support two mappings,
                     // one for top-down view (which we don't do now) and one
                     // for sideways, which is what's happening here.
                     BounceDirection.z = -BounceDirection.z;
@@ -377,7 +377,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                     real32 tFarMap = 0.0f;
                     if(tEnvMap < -0.5f)
                     {
-                        // TODO(Khisrow): This path seems PARTICULARLY broken!
+                        // TODO(Abid): This path seems PARTICULARLY broken!
                         FarMap = Bottom;
                         tFarMap = -1.0f - 2.0f*tEnvMap;
                     }
@@ -390,7 +390,7 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                     tFarMap *= tFarMap;
                     tFarMap *= tFarMap;
 
-                    v3 LightColor = {0, 0, 0}; // TODO(Khisrow): How do we sample from the middle map???
+                    v3 LightColor = {0, 0, 0}; // TODO(Abid): How do we sample from the middle map???
                     if(FarMap)
                     {
                         real32 DistanceFromMapInZ = FarMap->Pz - Pz;
@@ -399,11 +399,11 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                         LightColor = Lerp(LightColor, tFarMap, FarMapColor);
                     }
                     
-                    // TODO(Khisrow): ? Actually do a lighting model computation here
+                    // TODO(Abid): ? Actually do a lighting model computation here
                     Texel.rgb = Texel.rgb + Texel.a*LightColor;
 
 #if 0
-                    // NOTE(Khisrow): Draws the bounce direction
+                    // NOTE(Abid): Draws the bounce direction
                     Texel.rgb = V3(0.5f, 0.5f, 0.5f) + 0.5f*BounceDirection;
                     Texel.rgb *= Texel.a;
 #endif
@@ -420,12 +420,12 @@ DrawRectangleSlowly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Col
                            (real32)((*Pixel >> 0) & 0xFF),
                            (real32)((*Pixel >> 24) & 0xFF)};
                 
-                // NOTE(Khisrow): Go from sRGB to "linear" brightness space
+                // NOTE(Abid): Go from sRGB to "linear" brightness space
                 Dest = SRGB255ToLinear1(Dest);
                 
                 v4 Blended = (1.0f-Texel.a)*Dest + Texel;
 
-                // NOTE(Khisrow): Go from "linear" brightness space to sRGB
+                // NOTE(Abid): Go from "linear" brightness space to sRGB
                 v4 Blended255 = Linear1ToSRGB255(Blended);
 
                 *Pixel = (((uint32)(Blended255.a + 0.5f) << 24) |
@@ -461,7 +461,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
 {
     BEGIN_TIMED_BLOCK(DrawRectangleQuickly);
     
-    // NOTE(Khisrow): Premultiply color up front   
+    // NOTE(Abid): Premultiply color up front   
     Color.rgb *= Color.a;
 
     real32 XAxisLength = Length(XAxis);
@@ -470,7 +470,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
     v2 NxAxis = (YAxisLength / XAxisLength) * XAxis;
     v2 NyAxis = (XAxisLength / YAxisLength) * YAxis;
 
-    // NOTE(Khisrow): NzScale could be a parameter if we want people to
+    // NOTE(Abid): NzScale could be a parameter if we want people to
     // have control over the amount of scaling in the Z direction
     // that the normals appear to have.
     real32 NzScale = 0.5f*(XAxisLength + YAxisLength);
@@ -619,7 +619,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                                                                            _mm_cmple_ps(V, One))));
                 WriteMask = _mm_and_si128(WriteMask, ClipMask);
             
-				// TODO(Khisrow): Later, re-check if this helps
+				// TODO(Abid): Later, re-check if this helps
 				// if(_mm_movemask_epi8(WriteMask))
                 {
                     __m128i OriginalDest = _mm_load_si128((__m128i *)Pixel);
@@ -627,7 +627,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     U = _mm_min_ps(_mm_max_ps(U, Zero), One);
                     V = _mm_min_ps(_mm_max_ps(V, Zero), One);
 
-					// NOTE(Khisrow): Bias texture coordinates to start on the boundary
+					// NOTE(Abid): Bias texture coordinates to start on the boundary
 					// between the (0, 0) and (1, 1) pixels.
                     __m128 tX = _mm_add_ps(_mm_mul_ps(U, WidthM2), Half);
                     __m128 tY = _mm_add_ps(_mm_mul_ps(V, HeightM2), Half);
@@ -640,7 +640,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
 
                     FetchX_4x = _mm_slli_epi32(FetchX_4x, 2);
 
-					// WARNING(Khisrow) SSE4.1 intrinsic!!!
+					// WARNING(Abid) SSE4.1 intrinsic!!!
 					// FetchY_4x = _mm_mullo_epi32(FetchY_4x, TexturePitch_4x);
 
                     FetchY_4x = _mm_or_si128(_mm_mullo_epi16(FetchY_4x, TexturePitch_4x),
@@ -677,7 +677,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                                                      *(uint32 *)(TexelPtr2 + TexturePitch + sizeof(uint32)),
                                                      *(uint32 *)(TexelPtr3 + TexturePitch + sizeof(uint32)));
                
-                    // NOTE(Khisrow): Unpack bilinear samples
+                    // NOTE(Abid): Unpack bilinear samples
                     __m128i TexelArb = _mm_and_si128(SampleA, MaskFF00FF);
                     __m128i TexelAag = _mm_and_si128(_mm_srli_epi32(SampleA, 8), MaskFF00FF);
                     TexelArb = _mm_mullo_epi16(TexelArb, TexelArb);
@@ -702,13 +702,13 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     __m128 TexelDa = _mm_cvtepi32_ps(_mm_srli_epi32(TexelDag, 16));
                     TexelDag = _mm_mullo_epi16(TexelDag, TexelDag);
             
-                    // NOTE(Khisrow): Load destination
+                    // NOTE(Abid): Load destination
                     __m128 Destb = _mm_cvtepi32_ps(_mm_and_si128(OriginalDest, MaskFF));
                     __m128 Destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 8), MaskFF));
                     __m128 Destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 16), MaskFF));
                     __m128 Desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(OriginalDest, 24), MaskFF));
             
-                    // NOTE(Khisrow): Convert texture from 0-255 sRGB to "linear" 0-1 brightness space
+                    // NOTE(Abid): Convert texture from 0-255 sRGB to "linear" 0-1 brightness space
                     __m128 TexelAr = _mm_cvtepi32_ps(_mm_srli_epi32(TexelArb, 16));
                     __m128 TexelAg = _mm_cvtepi32_ps(_mm_and_si128(TexelAag, MaskFFFF));
                     __m128 TexelAb = _mm_cvtepi32_ps(_mm_and_si128(TexelArb, MaskFFFF));
@@ -725,7 +725,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     __m128 TexelDg = _mm_cvtepi32_ps(_mm_and_si128(TexelDag, MaskFFFF));
                     __m128 TexelDb = _mm_cvtepi32_ps(_mm_and_si128(TexelDrb, MaskFFFF));
 
-                    // NOTE(Khisrow): Bilinear texture blend
+                    // NOTE(Abid): Bilinear texture blend
                     __m128 ifX = _mm_sub_ps(One, fX);
                     __m128 ifY = _mm_sub_ps(One, fY);
                 
@@ -743,7 +743,7 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     __m128 Texela = _mm_add_ps(_mm_add_ps(_mm_mul_ps(l0, TexelAa), _mm_mul_ps(l1, TexelBa)),
                                                _mm_add_ps(_mm_mul_ps(l2, TexelCa), _mm_mul_ps(l3, TexelDa)));
 
-                    // NOTE(Khisrow): Modulate by incoming color
+                    // NOTE(Abid): Modulate by incoming color
                     Texelr = _mm_mul_ps(Texelr, Colorr_4x);
                     Texelg = _mm_mul_ps(Texelg, Colorg_4x);
                     Texelb = _mm_mul_ps(Texelb, Colorb_4x);
@@ -753,19 +753,19 @@ DrawRectangleQuickly(loaded_bitmap *Buffer, v2 Origin, v2 XAxis, v2 YAxis, v4 Co
                     Texelg = _mm_min_ps(_mm_max_ps(Texelg, Zero), MaxColorValue);
                     Texelb = _mm_min_ps(_mm_max_ps(Texelb, Zero), MaxColorValue);
                             
-                    // NOTE(Khisrow): Go from sRGB to "linear" brightness space
+                    // NOTE(Abid): Go from sRGB to "linear" brightness space
                     Destr = mmSquare(Destr);
                     Destg = mmSquare(Destg);
                     Destb = mmSquare(Destb);
 
-                    // NOTE(Khisrow): Destination blend
+                    // NOTE(Abid): Destination blend
                     __m128 InvTexelA = _mm_sub_ps(One, _mm_mul_ps(Inv255_4x, Texela));
                     __m128 Blendedr = _mm_add_ps(_mm_mul_ps(InvTexelA, Destr), Texelr);
                     __m128 Blendedg = _mm_add_ps(_mm_mul_ps(InvTexelA, Destg), Texelg);
                     __m128 Blendedb = _mm_add_ps(_mm_mul_ps(InvTexelA, Destb), Texelb);
                     __m128 Blendeda = _mm_add_ps(_mm_mul_ps(InvTexelA, Desta), Texela);
 
-                    // NOTE(Khisrow): Go from "linear" 0-1 brightness space to sRGB 0-255
+                    // NOTE(Abid): Go from "linear" 0-1 brightness space to sRGB 0-255
 #if 1
                     Blendedr = _mm_mul_ps(Blendedr, _mm_rsqrt_ps(Blendedr));
                     Blendedg = _mm_mul_ps(Blendedg, _mm_rsqrt_ps(Blendedg));
@@ -991,7 +991,7 @@ DrawMatte(loaded_bitmap *Buffer, loaded_bitmap *Bitmap,
             real32 RDA = (DA / 255.0f);
             
             real32 InvRSA = (1.0f-RSA);
-            // TODO(Khisrow): Check this for math errors
+            // TODO(Abid): Check this for math errors
 //            real32 A = 255.0f*(RSA + RDA - RSA*RDA);
             real32 A = InvRSA*DA;
             real32 R = InvRSA*DR;
@@ -1158,7 +1158,7 @@ internal void
 TiledRenderGroupToOutput(platform_work_queue *RenderQueue, render_group *RenderGroup, loaded_bitmap *OutputTarget)
 {
 	/*
-	   TODO(Khisrow):
+	   TODO(Abid):
 
 	   - Make sure tiles are all cache-aligned, for performance
 	   - Can we get hyperthreads synced so they do interleaved lines?
@@ -1207,10 +1207,10 @@ TiledRenderGroupToOutput(platform_work_queue *RenderQueue, render_group *RenderG
 			Work->OutputTarget = OutputTarget;
 			Work->ClipRect = ClipRect;
 #if 1
-			// NOTE(Khisrow): Multi-threaded
+			// NOTE(Abid): Multi-threaded
 			PlatformAddEntry(RenderQueue, DoTiledRenderWork, Work);
 #else
-			// NOTE(Khisrow): Single-threaded
+			// NOTE(Abid): Single-threaded
 			DoTiledRenderWork(RenderQueue, Work);
 #endif
 		}
@@ -1226,7 +1226,7 @@ AllocateRenderGroup(game_assets *Assets, memory_arena *Arena, uint32 MaxPushBuff
 
 	if(MaxPushBufferSize == 0)
 	{
-		// TODO(Khisrow): Safe cast from the memory_index uint32!
+		// TODO(Abid): Safe cast from the memory_index uint32!
 		MaxPushBufferSize = (uint32)GetArenaSizeRemaining(Arena);
 	}
     Result->PushBufferBase = (uint8 *)PushSize(Arena, MaxPushBufferSize);
@@ -1237,7 +1237,7 @@ AllocateRenderGroup(game_assets *Assets, memory_arena *Arena, uint32 MaxPushBuff
 	Result->Assets = Assets;
     Result->GlobalAlpha = 1.0f;
 
-	// NOTE(Khisrow): Default transform
+	// NOTE(Abid): Default transform
     Result->Transform.OffsetP = V3(0.f, 0.f, 0.0f);
     Result->Transform.Scale = 1.f;
 
@@ -1249,13 +1249,13 @@ inline void
 Perspective(render_group *RenderGroup, int32 PixelWidth, int32 PixelHeight,
 			real32 MetersToPixels, real32 FocalLength, real32 DistanceAboveTarget)
 {
-	// TODO(Khisrow): Maybe we want to adjust this parameter based on the buffer size
+	// TODO(Abid): Maybe we want to adjust this parameter based on the buffer size
 	real32 PixelsToMeters = SafeRatio1(1.0f, MetersToPixels);
     RenderGroup->MonitorHalfDimInMeters = {0.5f*PixelWidth*PixelsToMeters,
 										   0.5f*PixelHeight*PixelsToMeters};
 
     RenderGroup->Transform.MetersToPixels = MetersToPixels;
-    RenderGroup->Transform.FocalLength = FocalLength; // NOTE(Khisrow): Meters that the person is sitting from their monitor!
+    RenderGroup->Transform.FocalLength = FocalLength; // NOTE(Abid): Meters that the person is sitting from their monitor!
     RenderGroup->Transform.DistanceAboveTarget = DistanceAboveTarget;
 	RenderGroup->Transform.ScreenCenter = {0.5f*PixelWidth, 0.5f*PixelHeight};
 
@@ -1270,7 +1270,7 @@ Orthographic(render_group *RenderGroup, int32 PixelWidth, int32 PixelHeight, rea
 									  	   0.5f*PixelHeight*PixelsToMeters};
 
     RenderGroup->Transform.MetersToPixels = MetersToPixels;
-    RenderGroup->Transform.FocalLength = 1.0f; // NOTE(Khisrow): Meters that the person is sitting from their monitor!
+    RenderGroup->Transform.FocalLength = 1.0f; // NOTE(Abid): Meters that the person is sitting from their monitor!
     RenderGroup->Transform.DistanceAboveTarget = 1.0f;
 	RenderGroup->Transform.ScreenCenter = {0.5f*PixelWidth, 0.5f*PixelHeight};
 
@@ -1292,12 +1292,12 @@ GetRenderEntityBasisP(render_transform *Transform, v3 OriginalP)
 
 	if(!Transform->Orthographic)
 	{
-		// NOTE(Khisrow): This routine is for perspective basis rendering
+		// NOTE(Abid): This routine is for perspective basis rendering
 		real32 OffsetZ = 0.0f;
 
 		real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
 #if 0
-		// TODO(Khisrow): How do we want to control the debug camera?
+		// TODO(Abid): How do we want to control the debug camera?
 		if(1) DistanceAboveTarget += 50.0f;
 #endif
 
@@ -1316,7 +1316,7 @@ GetRenderEntityBasisP(render_transform *Transform, v3 OriginalP)
 	}
 	else
 	{
-		// NOTE(Khisrow): This routine is for orthographic basis rendering
+		// NOTE(Abid): This routine is for orthographic basis rendering
 		Result.Scale = Transform->MetersToPixels;
 		Result.Valid = true;
 		Result.P = Transform->ScreenCenter + P.xy*Transform->MetersToPixels;
@@ -1398,11 +1398,11 @@ PushRectOutline(render_group *Group, v3 Offset, v2 Dim, v4 Color = V4(1, 1, 1, 1
 {
     real32 Thickness = 0.1f;
     
-    // NOTE(Khisrow): Top and bottom
+    // NOTE(Abid): Top and bottom
     PushRect(Group, Offset - V3(0, 0.5f*Dim.y, 0), V2(Dim.x, Thickness), Color);
     PushRect(Group, Offset + V3(0, 0.5f*Dim.y, 0), V2(Dim.x, Thickness), Color);
 
-    // NOTE(Khisrow): Left and right
+    // NOTE(Abid): Left and right
     PushRect(Group, Offset - V3(0.5f*Dim.x, 0, 0), V2(Thickness, Dim.y), Color);
     PushRect(Group, Offset + V3(0.5f*Dim.x, 0, 0), V2(Thickness, Dim.y), Color);
 }

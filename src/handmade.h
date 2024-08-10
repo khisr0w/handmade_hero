@@ -191,7 +191,7 @@ SubArena(memory_arena *Result, memory_arena *Arena, memory_index Size, memory_in
 #define ZeroStruct(Instance) ZeroSize(sizeof(Instance), &(Instance))
 inline void
 ZeroSize(memory_index Size, void *Ptr) {
-    // TODO(Khisrow): Check this guy for performance
+    // TODO(Abid): Check this guy for performance
     uint8 *Byte = (uint8 *)Ptr;
     while(Size--) *Byte++ = 0;
 }
@@ -205,7 +205,7 @@ ZeroSize(memory_index Size, void *Ptr) {
 #include "handmade_asset.h"
 
 struct low_entity {
-    // TODO(Khisrow): It's kind of busted that P's can be invalid here,
+    // TODO(Abid): It's kind of busted that P's can be invalid here,
     // AND we store whether they would be invalid in the flags field...
     // Can we do something better here?
     world_position P;
@@ -215,7 +215,7 @@ struct low_entity {
 struct controlled_hero {
     uint32 EntityIndex;
     
-    // NOTE(Khisrow): These are the controller requests for simulation
+    // NOTE(Abid): These are the controller requests for simulation
     v2 ddP;
     v2 dSword;
     real32 dZ;
@@ -233,10 +233,17 @@ internal void AddCollisionRule(game_state *GameState, uint32 StorageIndexA, uint
 internal void ClearCollisionRulesFor(game_state *GameState, uint32 StorageIndex);
 
 struct ground_buffer {
-    // NOTE(Khisrow): An invalid P tells us that this ground_buffer has not been filled
-    world_position P; // NOTE(Khisrow): This is the center of the bitmap
+    // NOTE(Abid): An invalid P tells us that this ground_buffer has not been filled
+    world_position P; // NOTE(Abid): This is the center of the bitmap
     loaded_bitmap Bitmap;
 };
+
+struct hero_bitmap_ids {
+    bitmap_id Head;
+    bitmap_id Cape;
+    bitmap_id Torso;
+};
+
 
 struct game_state {
     bool32 IsInitialized;
@@ -246,17 +253,17 @@ struct game_state {
 
     real32 TypicalFloorHeight;
     
-    // TODO(Khisrow): Should we allow split-screen?
+    // TODO(Abid): Should we allow split-screen?
     uint32 CameraFollowingEntityIndex;
     world_position CameraP;
 
     controlled_hero ControlledHeroes[ArrayCount(((game_input *)0)->Controllers)];
 
-    // TODO(Khisrow): Change the name to "stored entity"
+    // TODO(Abid): Change the name to "stored entity"
     uint32 LowEntityCount;
     low_entity LowEntities[100000];
 
-    // TODO(Khisrow): Must be power of two
+    // TODO(Abid): Must be power of two
     pairwise_collision_rule *CollisionRuleHash[256];
     pairwise_collision_rule *FirstFreeCollisionRule;
 
@@ -271,7 +278,7 @@ struct game_state {
 
     real32 Time;
 
-    loaded_bitmap TestDiffuse; // TODO(Khisrow): Re-fill this thing with gray.
+    loaded_bitmap TestDiffuse; // TODO(Abid): Re-fill this thing with gray.
     loaded_bitmap TestNormal;
 };
 
@@ -297,7 +304,7 @@ struct transient_state {
 
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
-    // NOTE(Khisrow): 0 is bottom, 1 is middle, 2 is top
+    // NOTE(Abid): 0 is bottom, 1 is middle, 2 is top
     environment_map EnvMaps[3];
 };
 

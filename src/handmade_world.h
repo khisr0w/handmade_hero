@@ -9,7 +9,7 @@
 #if !defined(HANDMADE_WORLD_H)
 struct world_position
 {
-    // TODO(Khisrow): It seems like we have to store ChunkX/Y/Z with each
+    // TODO(Abid): It seems like we have to store ChunkX/Y/Z with each
     // entity because even though the sim region gather doesn't need it
     // at first, and we could get by without it, entity references pull
     // in entities WITHOUT going through their world_chunk, and thus
@@ -19,11 +19,11 @@ struct world_position
     int32 ChunkY;
     int32 ChunkZ;
 
-    // NOTE(Khisrow): These are the offsets from the chunk center
+    // NOTE(Abid): These are the offsets from the chunk center
     v3 Offset_;
 };
 
-// TODO(Khisrow): Could make this just tile_chunk and then allow multiple tile chunks per X/Y/Z
+// TODO(Abid): Could make this just tile_chunk and then allow multiple tile chunks per X/Y/Z
 struct world_entity_block
 {
     uint32 EntityCount;
@@ -37,7 +37,7 @@ struct world_chunk
     int32 ChunkY;
     int32 ChunkZ;
 
-    // TODO(Khisrow): Profile this and determine if a pointer would be better here!
+    // TODO(Abid): Profile this and determine if a pointer would be better here!
     world_entity_block FirstBlock;
     
     world_chunk *NextInHash;
@@ -49,9 +49,9 @@ struct world
 
     world_entity_block *FirstFree;
 
-    // TODO(Khisrow): WorldChunkHash should probably switch to pointers IF
+    // TODO(Abid): WorldChunkHash should probably switch to pointers IF
     // tile entity blocks continue to be stored en masse directly in the tile chunk!
-    // NOTE(Khisrow): A the moment, this must be a power of two!
+    // NOTE(Abid): A the moment, this must be a power of two!
     world_chunk ChunkHash[4096];
 };
 

@@ -9,7 +9,7 @@
 #if !defined(HANDMADE_INSTRINSICS_H)
 
 //
-// TODO(Khisrow): Convert all of these to platform-efficient versions
+// TODO(Abid): Convert all of these to platform-efficient versions
 // and remove math.h
 //
 
@@ -23,7 +23,7 @@ inline uint32 AtomicCompareExchangeUInt32(uint32 volatile *Value, uint32 Expecte
     return (Result);
 }
 #else
-	// TODO(Khisrow); Need gcc/LLVM equivalents!
+	// TODO(Abid); Need gcc/LLVM equivalents!
 #endif
 
 inline int32
@@ -49,7 +49,7 @@ RotateLeft(uint32 Value, int32 Amount) {
 #if COMPILER_MSVC
     uint32 Result = _rotl(Value, Amount);
 #else
-    // TODO(Khisrow): Actually port this to other compiler platforms!
+    // TODO(Abid): Actually port this to other compiler platforms!
     Amount &= 31;
     uint32 Result = ((Value << Amount) | (Value >> (32 - Amount)));
 #endif
@@ -62,7 +62,7 @@ RotateRight(uint32 Value, int32 Amount) {
 #if COMPILER_MSVC
     uint32 Result = _rotr(Value, Amount);
 #else
-    // TODO(Khisrow): Actually port this to other compiler platforms!
+    // TODO(Abid): Actually port this to other compiler platforms!
     Amount &= 31;
     uint32 Result = ((Value >> Amount) | (Value << (32 - Amount)));
 #endif

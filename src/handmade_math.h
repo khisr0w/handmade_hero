@@ -194,7 +194,7 @@ V4(v3 XYZ, real32 W)
 }
 
 //
-// NOTE(Khisrow): Scalar operations
+// NOTE(Abid): Scalar operations
 //
 
 inline real32
@@ -282,7 +282,7 @@ SafeRatio1(real32 Numerator, real32 Divisor)
 }
     
 //
-// NOTE(Khisrow): v2 operations
+// NOTE(Abid): v2 operations
 //
 
 inline v2
@@ -403,7 +403,7 @@ Clamp01(v2 Value)
 }
 
 //
-// NOTE(Khisrow): v3 operations
+// NOTE(Abid): v3 operations
 //
 
 inline v3
@@ -538,7 +538,7 @@ Lerp(v3 A, real32 t, v3 B)
 }
 
 //
-// NOTE(Khisrow): v4 operations
+// NOTE(Abid): v4 operations
 //
 
 inline v4
@@ -670,7 +670,7 @@ Lerp(v4 A, real32 t, v4 B)
 }
 
 //
-// NOTE(Khisrow): Rectangle2
+// NOTE(Abid): Rectangle2
 //
 
 inline v2
@@ -775,7 +775,7 @@ GetBarycentric(rectangle2 A, v2 P)
 }
 
 //
-// NOTE(Khisrow): Rectangle3
+// NOTE(Abid): Rectangle3
 //
 
 inline v3

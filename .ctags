@@ -1,0 +1,10 @@
+--recurse=yes
+--exclude=bin
+--exclude=data
+--exclude=debug
+--exclude=misc
+--exclude=.git
+--exclude=.gitignore
+--exclude=Makefile
+--exclude=*.sln
+--exclude=*.bat

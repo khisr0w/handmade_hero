@@ -8,7 +8,7 @@
 
 #if !defined(HANDMADE_RENDER_GROUP_H)
 
-/* NOTE(Khisrow):
+/* NOTE(Abid):
 
    1) Everywhere outside the renderer, Y _always_ goes upward, X to the right.
    
@@ -91,7 +91,7 @@ struct render_entry_rectangle
     v2 Dim;
 };
 
-// NOTE(Khisrow): This is only for test:
+// NOTE(Abid): This is only for test:
 // {
 struct render_entry_coordinate_system
 {
@@ -102,7 +102,7 @@ struct render_entry_coordinate_system
     loaded_bitmap *Texture;
     loaded_bitmap *NormalMap;
 
-	// real32 PixelsToMeters; TODO(Khisrow): Need to store this for our lighting
+	// real32 PixelsToMeters; TODO(Abid): Need to store this for our lighting
 	
 
     environment_map *Top;
@@ -114,11 +114,11 @@ struct render_entry_coordinate_system
 struct render_transform
 {
 	bool32 Orthographic;
-	// NOTE(Khisrow): This translates meters _on the monitor_ into pixels _on the monitor_
+	// NOTE(Abid): This translates meters _on the monitor_ into pixels _on the monitor_
     real32 MetersToPixels;
 	v2 ScreenCenter;
 
-    // NOTE(Khisrow): Camera parameters
+    // NOTE(Abid): Camera parameters
     real32 FocalLength;
     real32 DistanceAboveTarget;
 

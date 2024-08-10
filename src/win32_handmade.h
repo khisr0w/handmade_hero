@@ -10,7 +10,7 @@
 
 struct win32_offscreen_buffer
 {
-    // NOTE(Khisrow): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
+    // NOTE(Abid): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
     BITMAPINFO Info;
     void *Memory;
     int Width;
@@ -33,8 +33,8 @@ struct win32_sound_output
     DWORD SecondaryBufferSize;
     DWORD SafetyBytes;
 
-    // TODO(Khisrow): Should running sample index be in bytes as well
-    // TODO(Khisrow): Math gets simpler if we add a "bytes per second" field?
+    // TODO(Abid): Should running sample index be in bytes as well
+    // TODO(Abid): Math gets simpler if we add a "bytes per second" field?
 };
 
 struct win32_debug_time_marker
@@ -54,7 +54,7 @@ struct win32_game_code
     HMODULE GameCodeDLL;
     FILETIME DLLLastWriteTime;
 
-    // IMPORTANT(Khisrow): Either of the callbacks can be 0!  You must
+    // IMPORTANT(Abid): Either of the callbacks can be 0!  You must
     // check before calling.
     game_update_and_render *UpdateAndRender;
     game_get_sound_samples *GetSoundSamples;

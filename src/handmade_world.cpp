@@ -32,7 +32,7 @@ IsValid(world_position P)
 inline bool32
 IsCanonical(real32 ChunkDim, real32 TileRel)
 {
-    // TODO(Khisrow): Fix floating point math so this can be exact?
+    // TODO(Abid): Fix floating point math so this can be exact?
     real32 Epsilon = 0.01f;
     bool32 Result = ((TileRel >= -(0.5f*ChunkDim + Epsilon)) &&
                      (TileRel <= (0.5f*ChunkDim + Epsilon)));
@@ -74,7 +74,7 @@ GetWorldChunk(world *World, int32 ChunkX, int32 ChunkY, int32 ChunkZ,
     Assert(ChunkY < TILE_CHUNK_SAFE_MARGIN);
     Assert(ChunkZ < TILE_CHUNK_SAFE_MARGIN);
     
-    // TODO(Khisrow): BETTER HASH FUNCTION!!!!
+    // TODO(Abid): BETTER HASH FUNCTION!!!!
     uint32 HashValue = 19*ChunkX + 7*ChunkY + 3*ChunkZ;
     uint32 HashSlot = HashValue & (ArrayCount(World->ChunkHash) - 1);
     Assert(HashSlot < ArrayCount(World->ChunkHash));
@@ -130,13 +130,13 @@ InitializeWorld(world *World, v3 ChunkDimInMeters)
 inline void
 RecanonicalizeCoord(real32 ChunkDim, int32 *Tile, real32 *TileRel)
 {
-    // TODO(Khisrow): Need to do something that doesn't use the divide/multiply method
+    // TODO(Abid): Need to do something that doesn't use the divide/multiply method
     // for recanonicalizing because this can end up rounding back on to the tile
     // you just came from.
 
-    // NOTE(Khisrow): Wrapping IS NOT ALLOWED, so all coordinates are assumed to be
+    // NOTE(Abid): Wrapping IS NOT ALLOWED, so all coordinates are assumed to be
     // within the safe margin!
-    // TODO(Khisrow): Assert that we are nowhere near the edges of the world.
+    // TODO(Abid): Assert that we are nowhere near the edges of the world.
     
     int32 Offset = RoundReal32ToInt32(*TileRel / ChunkDim);
     *Tile += Offset;
@@ -194,7 +194,7 @@ inline void
 ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32 LowEntityIndex,
                         world_position *OldP, world_position *NewP)
 {
-    // TODO(Khisrow): If this moves an entity into the camera bounds, should it automatically
+    // TODO(Abid): If this moves an entity into the camera bounds, should it automatically
     // go into the high set immediately?
     // If it moves _out_ of the camera bounds, should it be removed from the high set
     // immediately?
@@ -204,13 +204,13 @@ ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32 LowEntityIndex
     
     if(OldP && NewP && AreInSameChunk(World, OldP, NewP))
     {
-        // NOTE(Khisrow): Leave entity where it is
+        // NOTE(Abid): Leave entity where it is
     }
     else
     {
         if(OldP)
         {
-            // NOTE(Khisrow): Pull the entity out of its old entity block
+            // NOTE(Abid): Pull the entity out of its old entity block
             world_chunk *Chunk = GetWorldChunk(World, OldP->ChunkX, OldP->ChunkY, OldP->ChunkZ);
             Assert(Chunk);            
             if(Chunk)
@@ -251,14 +251,14 @@ ChangeEntityLocationRaw(memory_arena *Arena, world *World, uint32 LowEntityIndex
 
         if(NewP)
         {
-            // NOTE(Khisrow): Insert the entity into its new entity block
+            // NOTE(Abid): Insert the entity into its new entity block
             world_chunk *Chunk = GetWorldChunk(World, NewP->ChunkX, NewP->ChunkY, NewP->ChunkZ, Arena);
             Assert(Chunk);
         
             world_entity_block *Block = &Chunk->FirstBlock;
             if(Block->EntityCount == ArrayCount(Block->LowEntityIndex))
             {
-                // NOTE(Khisrow): We're out of room, get a new block!
+                // NOTE(Abid): We're out of room, get a new block!
                 world_entity_block *OldBlock = World->FirstFree;
                 if(OldBlock)
                 {

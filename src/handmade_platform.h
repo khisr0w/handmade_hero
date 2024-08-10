@@ -9,7 +9,7 @@
 #if !defined(HANDMADE_PLATFORM_H)
 
 /*
-  NOTE(Khisrow):
+  NOTE(Abid):
 
   HANDMADE_INTERNAL:
     0 - Build for public release
@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 //
-// NOTE(Khisrow): Compilers
+// NOTE(Abid): Compilers
 //
     
 #if !defined(COMPILER_MSVC)
@@ -41,7 +41,7 @@ extern "C" {
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
-// TODO(Khisrow): Moar compilerz!!!
+// TODO(Abid): Moar compilerz!!!
 #undef COMPILER_LLVM
 #define COMPILER_LLVM 1
 #endif
@@ -56,7 +56,7 @@ extern "C" {
 #endif
     
 //
-// NOTE(Khisrow): Types
+// NOTE(Abid): Types
 //
 #include <stdint.h>
 #include <stddef.h>
@@ -85,14 +85,21 @@ extern "C" {
 /* TODO(Abid): Remove of this verbose types */
 typedef int8_t int8;
 typedef int16_t int16;
+typedef int16_t i16;
 typedef int32_t int32;
+typedef int32_t i32;
 typedef int64_t int64;
+typedef int64_t i64;
 typedef int32 bool32;
 
 typedef uint8_t uint8;
+typedef uint8_t u8;
 typedef uint16_t uint16;
+typedef uint16_t u16;
 typedef uint32_t uint32;
+typedef uint32_t u32;
 typedef uint64_t uint64;
+typedef uint64_t u64;
 
 typedef intptr_t intptr;
 typedef uintptr_t uintptr;
@@ -100,7 +107,9 @@ typedef uintptr_t uintptr;
 typedef size_t memory_index;
 
 typedef float real32;
+typedef float f32;
 typedef double real64;
+typedef double f64;
 
 #define Real32Maximum FLT_MAX
     
@@ -108,10 +117,11 @@ typedef double real64;
 #define local_persist static
 #define global_var static
 
+#define Tau32 6.28318530717958647692f
 #define Pi32 3.14159265359f
 
 #if HANDMADE_SLOW
-// TODO(Khisrow): Complete assertion macro - don't worry everyone!
+// TODO(Abid): Complete assertion macro - don't worry everyone!
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #else
 #define Assert(Expression)
@@ -126,14 +136,14 @@ typedef double real64;
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
-// TODO(Khisrow): swap, min, max ... macros???
+// TODO(Abid): swap, min, max ... macros???
 
 #define Align16(Value) ((Value + 15) & ~15)
 
 inline uint32
 SafeTruncateUInt64(uint64 Value)
 {
-    // TODO(Khisrow): Defines for maximum values
+    // TODO(Abid): Defines for maximum values
     Assert(Value <= 0xFFFFFFFF);
     uint32 Result = (uint32)Value;
     return Result;
@@ -145,10 +155,10 @@ typedef struct thread_context
 } thread_context;
 
 /*
-  NOTE(Khisrow): Services that the platform layer provides to the game
+  NOTE(Abid): Services that the platform layer provides to the game
 */
 #if HANDMADE_INTERNAL
-/* IMPORTANT(Khisrow):
+/* IMPORTANT(Abid):
 
    These are NOT for doing anything in the shipping game - they are
    blocking and the write doesn't protect against lost data!
@@ -187,7 +197,7 @@ extern struct game_memory *DebugGlobalMemory;
 #if _MSC_VER
 #define BEGIN_TIMED_BLOCK(ID) uint64 StartCycleCount##ID = __rdtsc();
 #define END_TIMED_BLOCK(ID) DebugGlobalMemory->Counters[DebugCycleCounter_##ID].CycleCount += __rdtsc() - StartCycleCount##ID; ++DebugGlobalMemory->Counters[DebugCycleCounter_##ID].HitCount;
-// TODO(Khisrow): Clamp END_TIMED_BLOCK_COUNTED so that if the calc is wrong, it won't overflow!
+// TODO(Abid): Clamp END_TIMED_BLOCK_COUNTED so that if the calc is wrong, it won't overflow!
 #define END_TIMED_BLOCK_COUNTED(ID, Count) DebugGlobalMemory->Counters[DebugCycleCounter_##ID].CycleCount += __rdtsc() - StartCycleCount##ID; DebugGlobalMemory->Counters[DebugCycleCounter_##ID].HitCount += (Count);
 #else
 #define BEGIN_TIMED_BLOCK(ID) 
@@ -198,17 +208,17 @@ extern struct game_memory *DebugGlobalMemory;
 #endif
 
 /*
-  NOTE(Khisrow): Services that the game provides to the platform layer.
+  NOTE(Abid): Services that the game provides to the platform layer.
   (this may expand in the future - sound on separate thread, etc.)
 */
 
 // FOUR THINGS - timing, controller/keyboard input, bitmap buffer to use, sound buffer to use
 
-// TODO(Khisrow): In the future, rendering _specifically_ will become a three-tiered abstraction!!!
+// TODO(Abid): In the future, rendering _specifically_ will become a three-tiered abstraction!!!
 #define BITMAP_BYTES_PER_PIXEL 4
 typedef struct game_offscreen_buffer
 {
-    // NOTE(Khisrow): Pixels are always 32-bits wide, Memory Order BB GG RR XX
+    // NOTE(Abid): Pixels are always 32-bits wide, Memory Order BB GG RR XX
     void *Memory;
     int Width;
     int Height;
@@ -256,7 +266,7 @@ typedef struct game_controller_input
             game_button_state Back;
             game_button_state Start;
 
-            // NOTE(Khisrow): All buttons must be added above this line
+            // NOTE(Abid): All buttons must be added above this line
             
             game_button_state Terminator;
         };
@@ -284,10 +294,10 @@ typedef PLATFORM_ADD_ENTRY(platform_add_entry);
 typedef PLATFORM_COMPLETE_ALL_WORK(platform_complete_all_work);
 typedef struct game_memory {
     uint64 PermanentStorageSize;
-    void *PermanentStorage; // NOTE(Khisrow): REQUIRED to be cleared to zero at startup
+    void *PermanentStorage; // NOTE(Abid): REQUIRED to be cleared to zero at startup
 
     uint64 TransientStorageSize;
-    void *TransientStorage; // NOTE(Khisrow): REQUIRED to be cleared to zero at startup
+    void *TransientStorage; // NOTE(Abid): REQUIRED to be cleared to zero at startup
 
 	platform_work_queue *HighPriorityQueue;
 	platform_work_queue *LowPriorityQueue;
@@ -307,9 +317,9 @@ typedef struct game_memory {
 #define GAME_UPDATE_AND_RENDER(name) void name(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
-// NOTE(Khisrow): At the moment, this has to be a very fast function, it cannot be
+// NOTE(Abid): At the moment, this has to be a very fast function, it cannot be
 // more than a millisecond or so.
-// TODO(Khisrow): Reduce the pressure on this function's performance by measuring it
+// TODO(Abid): Reduce the pressure on this function's performance by measuring it
 // or asking about it, etc.
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *Memory, game_sound_output_buffer *SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);

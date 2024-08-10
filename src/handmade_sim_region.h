@@ -12,8 +12,8 @@
 struct move_spec
 {
     bool32 UnitMaxAccelVector;
-    real32 Speed;
-    real32 Drag;
+    f32 Speed;
+    f32 Drag;
 };
 
 enum entity_type
@@ -32,12 +32,12 @@ enum entity_type
 
 struct hit_point
 {
-    // TODO(Khisrow): Bake this down into one variable
+    // TODO(Abid): Bake this down into one variable
     uint8 Flags;
     uint8 FilledAmount;
 };
 
-// TODO(Khisrow): Rename sim_entity to entity!
+// TODO(Abid): Rename sim_entity to entity!
 struct sim_entity;
 union entity_reference
 {
@@ -47,8 +47,8 @@ union entity_reference
 
 enum sim_entity_flags
 {
-    // TODO(Khisrow): Does it make more sense to have the flag be for _non_ colliding entities?
-    // TODO(Khisrow): Collides and ZSupported probably can be removed now/soon
+    // TODO(Abid): Does it make more sense to have the flag be for _non_ colliding entities?
+    // TODO(Abid): Collides and ZSupported probably can be removed now/soon
     EntityFlag_Collides = (1 << 0),
     EntityFlag_Nonspatial = (1 << 1),
     EntityFlag_Moveable = (1 << 2),
@@ -68,7 +68,7 @@ struct sim_entity_collision_volume_group
 {
     sim_entity_collision_volume TotalVolume;
 
-    // TODO(Khisrow): VolumeCount is always expected to be greater than 0 if the entity
+    // TODO(Abid): VolumeCount is always expected to be greater than 0 if the entity
     // has any volume... in the future, this could be compressed if necessary to say
     // that the VolumeCount can be 0 if the TotalVolume should be used as the only
     // collision volume for the entity.
@@ -78,7 +78,7 @@ struct sim_entity_collision_volume_group
 
 struct sim_entity
 {
-    // NOTE(Khisrow): These are only for the sim region
+    // NOTE(Abid): These are only for the sim region
     world_chunk *OldChunk;
     uint32 StorageIndex;
     bool32 Updatable;
@@ -91,26 +91,26 @@ struct sim_entity
     v3 P;
     v3 dP;
     
-    real32 DistanceLimit;
+    f32 DistanceLimit;
 
     sim_entity_collision_volume_group *Collision;
 
-    uint32 FacingDirection;
-    real32 tBob;
+    f32 FacingDirection;
+    f32 tBob;
 
     int32 dAbsTileZ;
 
-    // TODO(Khisrow): Should hitpoints themselves be entities?
+    // TODO(Abid): Should hitpoints themselves be entities?
     uint32 HitPointMax;
     hit_point HitPoint[16];
 
     entity_reference Sword;
 
-    // TODO(Khisrow): Only for stairwells!
+    // TODO(Abid): Only for stairwells!
     v2 WalkableDim;
-    real32 WalkableHeight;
+    f32 WalkableHeight;
     
-    // TODO(Khisrow): Generation index so we know how "up to date" this entity is.
+    // TODO(Abid): Generation index so we know how "up to date" this entity is.
 };
 
 struct sim_entity_hash
@@ -121,12 +121,12 @@ struct sim_entity_hash
 
 struct sim_region
 {
-    // TODO(Khisrow): Need a hash table here to map stored entity indices
+    // TODO(Abid): Need a hash table here to map stored entity indices
     // to sim entities!
     
     world *World;
-    real32 MaxEntityRadius;
-    real32 MaxEntityVelocity;
+    f32 MaxEntityRadius;
+    f32 MaxEntityVelocity;
 
     world_position Origin;
     rectangle3 Bounds;
@@ -136,8 +136,8 @@ struct sim_region
     uint32 EntityCount;
     sim_entity *Entities;
     
-    // TODO(Khisrow): Do I really want a hash for this??
-    // NOTE(Khisrow): Must be a power of two!
+    // TODO(Abid): Do I really want a hash for this??
+    // NOTE(Abid): Must be a power of two!
     sim_entity_hash Hash[4096];
 };
 
