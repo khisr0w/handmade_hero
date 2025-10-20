@@ -343,19 +343,16 @@ internal bool32
 CanOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region) {
     bool32 Result = false;
 
-    if(Mover != Region) {
-        if(Region->Type == EntityType_Stairwell) Result = true;
+    if(Mover != Region && Region->Type == EntityType_Stairwell) {
+        Result = true;
     }
 
     return Result;
 }
 
 internal void
-HandleOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region, real32 dt,
-              real32 *Ground) {
-    if(Region->Type == EntityType_Stairwell) {
-        *Ground = GetStairGround(Region, GetEntityGroundPoint(Mover));
-    }    
+HandleOverlap(game_state *GameState, sim_entity *Mover, sim_entity *Region, real32 *Ground) {
+    *Ground = GetStairGround(Region, GetEntityGroundPoint(Mover));
 }
 
 internal bool32
@@ -364,14 +361,14 @@ SpeculativeCollide(sim_entity *Mover, sim_entity *Region, v3 TestP) {
     
     if(Region->Type == EntityType_Stairwell) {
         // TODO(Abid): Needs work :)
-        real32 StepHeight = 0.1f;
+        real32 StepHeight = 0.01f;
 #if 0
         Result = ((AbsoluteValue(GetEntityGroundPoint(Mover).z - Ground) > StepHeight) ||
                   ((Bary.y > 0.1f) && (Bary.y < 0.9f)));
 #endif
         v3 MoverGroundPoint = GetEntityGroundPoint(Mover, TestP);
         real32 Ground = GetStairGround(Region, MoverGroundPoint);
-        Result = (AbsoluteValue(MoverGroundPoint.z - Ground) > StepHeight);
+        Result = AbsoluteValue(MoverGroundPoint.z - Ground) > StepHeight;
     }
 
     return Result;
@@ -407,10 +404,6 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
     
     world *World = SimRegion->World;
 
-    if(Entity->Type == EntityType_Hero) {
-        int BreakHere = 5;
-    }
-    
     if(MoveSpec->UnitMaxAccelVector) {
         real32 ddPLength = LengthSq(ddP);
         if(ddPLength > 1.0f) ddP *= (1.0f / SquareRoot(ddPLength));
@@ -424,7 +417,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
     ddP += Drag;
     if(!IsSet(Entity, EntityFlag_ZSupported)) ddP += V3(0, 0, -9.8f); // NOTE(Abid): Gravity!
 
-    v3 PlayerDelta = (0.5f*ddP*Square(dt) + Entity->dP*dt);
+    v3 PlayerDelta = 0.5f*ddP*Square(dt) + Entity->dP*dt;
     Entity->dP = ddP*dt + Entity->dP;
     // TODO(Abid): Upgrade physical motion routines to handle capping the
     // maximum velocity?
@@ -435,22 +428,23 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
         // TODO(Abid): Do we want to formalize this number?
         DistanceRemaining = 10000.0f;
     }
-    
+
+    real32 PlayerDeltaLength = Length(PlayerDelta);
     for(uint32 Iteration = 0; Iteration < 4; ++Iteration) {
         real32 tMin = 1.0f;
-        real32 tMax = 0.0f;
+        v3 WallNormalMin = {};
+        sim_entity *HitEntityMin = 0;
 
-        real32 PlayerDeltaLength = Length(PlayerDelta);
+        real32 tMax = 0.0f;
+        v3 WallNormalMax = {};
+        sim_entity *HitEntityMax = 0;
+
         // TODO(Abid): What do we want to do for epsilons here?
         // Think this through for the final collision code
         if(PlayerDeltaLength > 0.0f) {
+            /* NOTE(abid): Largest time t is until we reach the remaining distance. */
             if(PlayerDeltaLength > DistanceRemaining) tMin = (DistanceRemaining / PlayerDeltaLength);
         
-            v3 WallNormalMin = {};
-            v3 WallNormalMax = {};
-            sim_entity *HitEntityMin = 0;
-            sim_entity *HitEntityMax = 0;
-
             v3 DesiredPosition = Entity->P + PlayerDelta;
 
             // NOTE(Abid): This is just an optimization to avoid enterring the
@@ -465,9 +459,10 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
                     // TODO(Abid): Robustness!
                     real32 OverlapEpsilon = 0.001f;
                     
-                    if((IsSet(TestEntity, EntityFlag_Traversable) &&
-                        EntitiesOverlap(Entity, TestEntity, OverlapEpsilon*V3(1, 1, 1))) ||
-						CanCollide(GameState, Entity, TestEntity)) {
+                    bool32 is_test_entity_traversable = IsSet(TestEntity, EntityFlag_Traversable);
+                    if((is_test_entity_traversable
+                        && EntitiesOverlap(Entity, TestEntity, OverlapEpsilon*V3(1, 1, 1)))
+                        || CanCollide(GameState, Entity, TestEntity)) {
                         for(uint32 VolumeIndex = 0;
                             VolumeIndex < Entity->Collision->VolumeCount;
                             ++VolumeIndex) {
@@ -493,13 +488,33 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
                                 // TODO(Abid): Do we want an open inclusion at the MaxCorner?
                                 if((Rel.z >= MinCorner.z) && (Rel.z < MaxCorner.z)) {
                                     test_wall Walls[] = {
-                                        {MinCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(-1, 0, 0)},
-                                        {MaxCorner.x, Rel.x, Rel.y, PlayerDelta.x, PlayerDelta.y, MinCorner.y, MaxCorner.y, V3(1, 0, 0)},
-                                        {MinCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, -1, 0)},
-                                        {MaxCorner.y, Rel.y, Rel.x, PlayerDelta.y, PlayerDelta.x, MinCorner.x, MaxCorner.x, V3(0, 1, 0)},
+                                        {
+                                            /* X =*/MinCorner.x,
+                                            /* RelX =*/Rel.x,
+                                            /* RelY =*/Rel.y,
+                                            /* DeltaX =*/PlayerDelta.x,
+                                            /* DeltaX =*/PlayerDelta.y,
+                                            /* MinY =*/MinCorner.y,
+                                            /* MaxY =*/MaxCorner.y,
+                                            /* Normal =*/V3(-1, 0, 0)
+                                        },
+                                        {
+                                            MaxCorner.x, Rel.x, Rel.y,
+                                            PlayerDelta.x, PlayerDelta.y,
+                                            MinCorner.y, MaxCorner.y, V3(1, 0, 0)
+                                        },
+                                        {
+                                            MinCorner.y, Rel.y, Rel.x,
+                                            PlayerDelta.y, PlayerDelta.x,
+                                            MinCorner.x, MaxCorner.x, V3(0, -1, 0)},
+                                        {
+                                            MaxCorner.y, Rel.y, Rel.x,
+                                            PlayerDelta.y, PlayerDelta.x,
+                                            MinCorner.x, MaxCorner.x, V3(0, 1, 0)
+                                        },
                                     };
 
-                                    if(IsSet(TestEntity, EntityFlag_Traversable)) {
+                                    if(is_test_entity_traversable) {
                                         real32 tMaxTest = tMax;
                                         bool32 HitThis = false;
                                             
@@ -508,15 +523,18 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
                                             test_wall *Wall = Walls + WallIndex;
 
                                             real32 tEpsilon = 0.001f;
-                                            if(Wall->DeltaX != 0.0f) {
-                                                real32 tResult = (Wall->X - Wall->RelX) / Wall->DeltaX;
-                                                real32 Y = Wall->RelY + tResult*Wall->DeltaY;
-                                                if((tResult >= 0.0f) && (tMaxTest < tResult)) {
-                                                    if((Y >= Wall->MinY) && (Y <= Wall->MaxY)) {
-                                                        tMaxTest = Maximum(0.0f, tResult - tEpsilon);
-                                                        TestWallNormal = Wall->Normal;
-                                                        HitThis = true;
-                                                    }
+                                            /* NOTE(abid): Original Equation (linear interpolation based on time that will hit the wall):
+                                             * Rel + tResult * (Delta) == Wall->(X, Y )
+                                             * tResult * (Delta) = Wall - Rel
+                                             * tResult = (Wall - Rel) / Delta
+                                             */
+                                            real32 tResult = (Wall->X - Wall->RelX) / Wall->DeltaX;
+                                            real32 Y = Wall->RelY + tResult*Wall->DeltaY;
+                                            if((tResult >= 0.0f) && (tMaxTest < tResult)) {
+                                                if((Y >= Wall->MinY) && (Y <= Wall->MaxY)) {
+                                                    tMaxTest = Maximum(0.0f, tResult - tEpsilon);
+                                                    TestWallNormal = Wall->Normal;
+                                                    HitThis = true;
                                                 }
                                             }
                                         }
@@ -535,15 +553,13 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
                                             test_wall *Wall = Walls + WallIndex;
 
                                             real32 tEpsilon = 0.001f;
-                                            if(Wall->DeltaX != 0.0f) {
-                                                real32 tResult = (Wall->X - Wall->RelX) / Wall->DeltaX;
-                                                real32 Y = Wall->RelY + tResult*Wall->DeltaY;
-                                                if((tResult >= 0.0f) && (tMinTest > tResult)) {
-                                                    if((Y >= Wall->MinY) && (Y <= Wall->MaxY)) {
-                                                        tMinTest = Maximum(0.0f, tResult - tEpsilon);
-                                                        TestWallNormal = Wall->Normal;
-                                                        HitThis = true;
-                                                    }
+                                            real32 tResult = (Wall->X - Wall->RelX) / Wall->DeltaX;
+                                            real32 Y = Wall->RelY + tResult*Wall->DeltaY;
+                                            if((tResult >= 0.0f) && (tMinTest > tResult)) {
+                                                if((Y >= Wall->MinY) && (Y <= Wall->MaxY)) {
+                                                    tMinTest = Maximum(0.0f, tResult - tEpsilon);
+                                                    TestWallNormal = Wall->Normal;
+                                                    HitThis = true;
                                                 }
                                             }
                                         }
@@ -587,6 +603,7 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
 
                 bool32 StopsOnCollision = HandleCollision(GameState, Entity, HitEntity);
                 if(StopsOnCollision) {
+                    /* NOTE(abid): Remove vector components perpendicular to wall normal. */
                     PlayerDelta = PlayerDelta - 1*Inner(PlayerDelta, WallNormal)*WallNormal;
                     Entity->dP = Entity->dP - 1*Inner(Entity->dP, WallNormal)*WallNormal;
                 }
@@ -594,31 +611,30 @@ MoveEntity(game_state *GameState, sim_region *SimRegion, sim_entity *Entity, rea
         } else break;
     }    
 
+    /* NOTE(abid): Even if we are in higher floors, the ground will be zero, since 
+     * we recanonicalize based on chunk.z */
     real32 Ground = 0.0f;
 
     // NOTE(Abid): Handle events based on area overlapping
     // TODO(Abid): Handle overlapping precisely by moving it into the collision loop?
-    {
-        // TODO(Abid): Spatial partition here!
-        for(uint32 TestHighEntityIndex = 0;
-            TestHighEntityIndex < SimRegion->EntityCount;
-            ++TestHighEntityIndex) {
-            sim_entity *TestEntity = SimRegion->Entities + TestHighEntityIndex;
-            if(CanOverlap(GameState, Entity, TestEntity) &&
-               EntitiesOverlap(Entity, TestEntity)) {
-                HandleOverlap(GameState, Entity, TestEntity, dt, &Ground);
-            }
-        }    
-    }
+    // TODO(Abid): Spatial partition here!
+    for(uint32 TestHighEntityIndex = 0;
+        TestHighEntityIndex < SimRegion->EntityCount;
+        ++TestHighEntityIndex) {
+        sim_entity *TestEntity = SimRegion->Entities + TestHighEntityIndex;
+        if(CanOverlap(GameState, Entity, TestEntity) && EntitiesOverlap(Entity, TestEntity)) {
+            HandleOverlap(GameState, Entity, TestEntity, &Ground);
+        }
+    }    
     
     Ground += Entity->P.z - GetEntityGroundPoint(Entity).z;
-    if((Entity->P.z <= Ground) ||
-       (IsSet(Entity, EntityFlag_ZSupported) &&
-        (Entity->dP.z == 0.0f))) {
+    if(Entity->P.z <= Ground || (IsSet(Entity, EntityFlag_ZSupported) && Entity->dP.z == 0.0f)) {
         Entity->P.z = Ground;
         Entity->dP.z = 0;
         AddFlags(Entity, EntityFlag_ZSupported);
-    } else ClearFlags(Entity, EntityFlag_ZSupported);
+    } else {
+        ClearFlags(Entity, EntityFlag_ZSupported);
+    }
 
     if(Entity->DistanceLimit != 0.0f) {
         Entity->DistanceLimit = DistanceRemaining;

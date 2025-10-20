@@ -227,7 +227,7 @@ ClearCollisionRulesFor(game_state *GameState, u32 StorageIndex) {
     // the new things on the free list, and remove the reverse of
     // those pairs.
     for(u32 HashBucket = 0; HashBucket < ArrayCount(GameState->CollisionRuleHash); ++HashBucket) {
-        for(pairwise_collision_rule **Rule = &GameState->CollisionRuleHash[HashBucket]; *Rule;) {
+        for(pairwise_collision_rule **Rule = GameState->CollisionRuleHash + HashBucket; *Rule;) {
             if(((*Rule)->StorageIndexA == StorageIndex) ||
                ((*Rule)->StorageIndexB == StorageIndex)) {
                 pairwise_collision_rule *RemovedRule = *Rule;
@@ -386,7 +386,9 @@ FillGroundChunk(transient_state *TranState, game_state *GameState,
 				for(u32 GrassIndex = 0; GrassIndex < 100; ++GrassIndex) {
                     bitmap_id Stamp = RandomAssetFrom(TranState->Assets, RandomChoice(&Series, 2) ? Asset_Grass : Asset_Stone,
                                                       &Series);
-					v2 P = Center + Hadamard(HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series)));
+					v2 P = Center + Hadamard(
+                        HalfDim, V2(RandomBilateral(&Series), RandomBilateral(&Series))
+                    );
 					PushBitmap(RenderGroup, Stamp, 2.0f, V3(P, 0.0f), Color);
 				}
 			}
@@ -892,6 +894,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     v2 ScreenCenter = {0.5f*(real32)DrawBuffer->Width,
                        0.5f*(real32)DrawBuffer->Height};
 
+    /* NOTE(abid): Rectangular bounds of the world the needs to be rendered to the screen. 
+     * TODO: Maybe call it `WorldRenderBounds`? */
     rectangle2 ScreenBounds = GetCameraRectangleAtTarget(RenderGroup);
     rectangle3 CameraBoundsInMeters = RectMinMax(V3(ScreenBounds.Min, 0.0f), V3(ScreenBounds.Max, 0.0f));
     CameraBoundsInMeters.Min.z = -3.0f*GameState->TypicalFloorHeight;
@@ -990,7 +994,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
     v3 CameraP = Subtract(World, &GameState->CameraP, &SimCenterP);
     
     PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(ScreenBounds), V4(1.0f, 1.0f, 0.0f, 1));
-//    PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(CameraBoundsInMeters).xy, V4(1.0f, 1.0f, 1.0f, 1));
+    // PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(CameraBoundsInMeters).xy, V4(1.0f, 1.0f, 1.0f, 1));
     PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(SimBounds).xy, V4(0.0f, 1.0f, 1.0f, 1));
     PushRectOutline(RenderGroup, V3(0.0f, 0.0f, 0.0f), GetDim(SimRegion->Bounds).xy, V4(1.0f, 0.0f, 1.0f, 1));
 
@@ -1001,8 +1005,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
         ++EntityIndex)
     {
         sim_entity *Entity = SimRegion->Entities + EntityIndex;
-        if(Entity->Updatable)
-        {
+        if(Entity->Updatable) {
             real32 dt = Input->dtForFrame;
         
             // TODO(Abid): This is incorrect, should be computed after update!!!!
@@ -1018,44 +1021,26 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
             real32 FadeTopEndZ = 0.75f*GameState->TypicalFloorHeight;
             real32 FadeTopStartZ = 0.5f*GameState->TypicalFloorHeight;
             real32 FadeBottomStartZ = -2.0f*GameState->TypicalFloorHeight;
-            real32 FadeBottomEndZ = -2.25f*GameState->TypicalFloorHeight;;;
+            real32 FadeBottomEndZ = -2.25f*GameState->TypicalFloorHeight;
             RenderGroup->GlobalAlpha = 1.0f;
-            if(CameraRelativeGroundP.z > FadeTopStartZ)
-            {
+
+            if(CameraRelativeGroundP.z > FadeTopStartZ) {
                 RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeTopEndZ, CameraRelativeGroundP.z, FadeTopStartZ);
-            }
-            else if(CameraRelativeGroundP.z < FadeBottomStartZ)
-            {
+            } else if(CameraRelativeGroundP.z < FadeBottomStartZ) {
                 RenderGroup->GlobalAlpha = Clamp01MapToRange(FadeBottomEndZ, CameraRelativeGroundP.z, FadeBottomStartZ);
             }
             
-			/*
-			   NOTE(Abid): Pre-physics entity work
-			*/
-            hero_bitmap_ids HeroBitmaps = {};
-            asset_vector MatchVector = {0};
-            MatchVector.E[Tag_FacingDirection] = Entity->FacingDirection; 
-            asset_vector WeightVector = {0};
-            WeightVector.E[Tag_FacingDirection] = 1.0f;
-            HeroBitmaps.Head = BestMatchAsset(TranState->Assets, Asset_Head, &MatchVector, &WeightVector);
-            HeroBitmaps.Cape = BestMatchAsset(TranState->Assets, Asset_Cape, &MatchVector, &WeightVector);;
-            HeroBitmaps.Torso = BestMatchAsset(TranState->Assets, Asset_Torso, &MatchVector, &WeightVector);;
-
-            // hero_bitmaps *HeroBitmaps = &TranState->Assets->HeroBitmaps[Entity->FacingDirection];
-            switch(Entity->Type)
-            {
-                case EntityType_Hero:
-                {
+            /* NOTE(Abid): Pre-physics entity work */
+            switch(Entity->Type) {
+                case EntityType_Hero: {
                     // TODO(Abid): Now that we have some real usage examples, let's solidify
                     // the positioning system!
                     for(u32 ControlIndex = 0;
                         ControlIndex < ArrayCount(GameState->ControlledHeroes);
-                        ++ControlIndex)
-                    {
+                        ++ControlIndex) {
                         controlled_hero *ConHero = GameState->ControlledHeroes + ControlIndex;
 
-                        if(Entity->StorageIndex == ConHero->EntityIndex)
-                        {
+                        if(Entity->StorageIndex == ConHero->EntityIndex) {
                             if(ConHero->dZ != 0.0f) Entity->dP.z = ConHero->dZ;
                         
                             MoveSpec.UnitMaxAccelVector = true;
@@ -1063,36 +1048,34 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                             MoveSpec.Drag = 8.0f;
                             ddP = V3(ConHero->ddP, 0);
                             
-                            if((ConHero->dSword.x != 0.0f) || (ConHero->dSword.y != 0.0f))
-                            {
+                            if((ConHero->dSword.x != 0.0f) || (ConHero->dSword.y != 0.0f)) {
                                 sim_entity *Sword = Entity->Sword.Ptr;
-                                if(Sword && IsSet(Sword, EntityFlag_Nonspatial))
-                                {
+                                if(Sword && IsSet(Sword, EntityFlag_Nonspatial)) {
                                     Sword->DistanceLimit = 5.0f;
-                                    MakeEntitySpatial(Sword, Entity->P,
-                                                      Entity->dP + 5.0f*V3(ConHero->dSword, 0));
-                                    AddCollisionRule(GameState, Sword->StorageIndex, Entity->StorageIndex, false);
+                                    MakeEntitySpatial(
+                                        Sword, Entity->P,
+                                        Entity->dP + 5.0f*V3(ConHero->dSword, 0)
+                                    );
+                                    AddCollisionRule(
+                                        GameState, Sword->StorageIndex, Entity->StorageIndex, false
+                                    );
                                 }
                             }
                         }
                     }
                 } break;
-
-                case EntityType_Sword:
-                {
+                case EntityType_Sword: {
                     MoveSpec.UnitMaxAccelVector = false;
                     MoveSpec.Speed = 0.0f;
                     MoveSpec.Drag = 0.0f;
 
-                    if(Entity->DistanceLimit == 0.0f)
-                    {
+                    if(Entity->DistanceLimit == 0.0f) {
                         ClearCollisionRulesFor(GameState, Entity->StorageIndex);
                         MakeEntityNonSpatial(Entity);
                     }
                 } break;
 
-                case EntityType_Familiar:
-                {
+                case EntityType_Familiar: {
                     sim_entity *ClosestHero = 0;
                     real32 ClosestHeroDSq = Square(10.0f); // NOTE(Abid): Ten meter maximum search!
 
@@ -1115,11 +1098,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     }
 #endif
                     
-                    if(ClosestHero && (ClosestHeroDSq > Square(3.0f)))
-                    {
+                    if(ClosestHero && (ClosestHeroDSq > Square(3.0f))) {
+                        /* NOTE(abid): `MoveEntity` will turn it into a unit vector. */
                         real32 Acceleration = 0.5f;
-                        real32 OneOverLength = Acceleration / SquareRoot(ClosestHeroDSq);
-                        ddP = OneOverLength*(ClosestHero->P - Entity->P);
+                        ddP = Acceleration*(ClosestHero->P - Entity->P);
                     }
 
                     MoveSpec.UnitMaxAccelVector = true;
@@ -1128,17 +1110,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                 } break;
             }
             
-            if(!IsSet(Entity, EntityFlag_Nonspatial) &&
-                IsSet(Entity, EntityFlag_Moveable))
-            {
+            if(!IsSet(Entity, EntityFlag_Nonspatial) && IsSet(Entity, EntityFlag_Moveable)) {
                 MoveEntity(GameState, SimRegion, Entity, Input->dtForFrame, &MoveSpec, ddP);
             }
 
             RenderGroup->Transform.OffsetP = GetEntityGroundPoint(Entity);
 
-			/*
-			   NOTE(Abid): Post-physics Entity work
-			*/
+			/* NOTE(Abid): Post-physics Entity work */
+
+            hero_bitmap_ids HeroBitmaps = {};
+            asset_vector MatchVector = {0};
+            MatchVector.E[Tag_FacingDirection] = Entity->FacingDirection; 
+            asset_vector WeightVector = {0};
+            WeightVector.E[Tag_FacingDirection] = 1.0f;
+            HeroBitmaps.Head = BestMatchAsset(TranState->Assets, Asset_Head, &MatchVector, &WeightVector);
+            HeroBitmaps.Cape = BestMatchAsset(TranState->Assets, Asset_Cape, &MatchVector, &WeightVector);;
+            HeroBitmaps.Torso = BestMatchAsset(TranState->Assets, Asset_Torso, &MatchVector, &WeightVector);;
             switch(Entity->Type)
             {
                 case EntityType_Hero: {
@@ -1170,8 +1157,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender) {
                     Entity->tBob += dt;
                     if(Entity->tBob > (Tau32)) Entity->tBob -= (Tau32);
                     real32 BobSin = Sin(2.0f*Entity->tBob);
-                    PushBitmap(RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow), 2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) + 0.2f*BobSin));
-                    PushBitmap(RenderGroup, HeroBitmaps.Head, 2.5f, V3(0, 0, 0.25f*BobSin));
+                    PushBitmap(
+                        RenderGroup, GetFirstBitmapID(TranState->Assets, Asset_Shadow),
+                        2.5f, V3(0, 0, 0), V4(1, 1, 1, (0.5f*ShadowAlpha) - 0.2f*BobSin)
+                    );
+                    PushBitmap(RenderGroup, HeroBitmaps.Head, 2.5f, V3(0, 0.25f*BobSin, 0));
                 } break;
                 
                 case EntityType_Monstar: {

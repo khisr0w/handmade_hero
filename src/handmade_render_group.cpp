@@ -1255,7 +1255,7 @@ Perspective(render_group *RenderGroup, int32 PixelWidth, int32 PixelHeight,
 										   0.5f*PixelHeight*PixelsToMeters};
 
     RenderGroup->Transform.MetersToPixels = MetersToPixels;
-    RenderGroup->Transform.FocalLength = FocalLength; // NOTE(Abid): Meters that the person is sitting from their monitor!
+    RenderGroup->Transform.FocalLength = FocalLength; // NOTE(Abid): Meters that the person/camera is sitting from their monitor!
     RenderGroup->Transform.DistanceAboveTarget = DistanceAboveTarget;
 	RenderGroup->Transform.ScreenCenter = {0.5f*PixelWidth, 0.5f*PixelHeight};
 
@@ -1266,11 +1266,12 @@ inline void
 Orthographic(render_group *RenderGroup, int32 PixelWidth, int32 PixelHeight, real32 MetersToPixels)
 {
 	real32 PixelsToMeters = SafeRatio1(1.0f, MetersToPixels);
+    /* TODO(abid): Its not really monitor in all cases. Look at `FillGroundChunk`.  */
     RenderGroup->MonitorHalfDimInMeters = {0.5f*PixelWidth*PixelsToMeters,
 									  	   0.5f*PixelHeight*PixelsToMeters};
 
     RenderGroup->Transform.MetersToPixels = MetersToPixels;
-    RenderGroup->Transform.FocalLength = 1.0f; // NOTE(Abid): Meters that the person is sitting from their monitor!
+    RenderGroup->Transform.FocalLength = 1.0f; // NOTE(Abid): Meters that the person/camera is sitting from their monitor!
     RenderGroup->Transform.DistanceAboveTarget = 1.0f;
 	RenderGroup->Transform.ScreenCenter = {0.5f*PixelWidth, 0.5f*PixelHeight};
 
@@ -1298,10 +1299,10 @@ GetRenderEntityBasisP(render_transform *Transform, v3 OriginalP)
 		real32 DistanceAboveTarget = Transform->DistanceAboveTarget;
 #if 0
 		// TODO(Abid): How do we want to control the debug camera?
-		if(1) DistanceAboveTarget += 50.0f;
+		DistanceAboveTarget += 50.0f;
 #endif
 
-		real32 DistanceToPZ = (DistanceAboveTarget - P.z);
+		real32 DistanceToPZ = DistanceAboveTarget - P.z;
 		real32 NearClipPlane = 0.2f;
 
 		v3 RawXY = V3(P.xy, 1.0f);

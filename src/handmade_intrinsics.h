@@ -6,7 +6,7 @@
     |                                                                                  |
     +=====================| Sayed Abid Hashimi, Copyright © All rights reserved |======+  */
 
-#if !defined(HANDMADE_INSTRINSICS_H)
+#if !defined(HANDMADE_INTRINSICS_H)
 
 //
 // TODO(Abid): Convert all of these to platform-efficient versions
@@ -147,5 +147,5 @@ FindLeastSignificantSetBit(u32 Value)
     return Result;
 }
 
-#define HANDMADE_INSTRINSICS_H
+#define HANDMADE_INTRINSICS_H
 #endif

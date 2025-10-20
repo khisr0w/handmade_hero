@@ -649,7 +649,7 @@ Win32ProcessXInputDigitalButton(DWORD XInputButtonState,
                                 game_button_state *NewState)
 {
     NewState->EndedDown = ((XInputButtonState & ButtonBit) == ButtonBit);
-    NewState->HalfTransitionCount = (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
+    NewState->HalfTransitionCount += (OldState->EndedDown != NewState->EndedDown) ? 1 : 0;
 }
 
 internal real32

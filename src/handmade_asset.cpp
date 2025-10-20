@@ -276,10 +276,13 @@ BestMatchAsset(game_assets *Assets, asset_type_id TypeID,
 
             f32 A = MatchVector->E[Tag->ID];
             f32 B = Tag->Value;
-            f32 D0 = AbsoluteValue(A - B);
-            /* NOTE(Abid): Neighborhood operator (Day 137). */
-            f32 D1 = AbsoluteValue((A - Assets->TagRange[Tag->ID]*SignOf(A)) - B);
-            f32 Difference = Minimum(D0, D1); /* Whichever one is closest is the corrent verison. */
+            f32 D0 = AbsoluteValue(A - B); /* NOTE(abid): In both positive, this will be min. */
+            /* NOTE(Abid): Neighborhood operator (Day 137). This is done because we assume all
+             * values are periodic. This handles atan2 case (-180, 180), where if both values are
+             * the same sign then D0 < D1, otherwise D1 =< D0 (D1 is calculated by wrapping its position
+             * from the other other-half's side, i.e. if A is -, it will turn +, and vice versa).*/
+            f32 D1 = AbsoluteValue((A - Assets->TagRange[Tag->ID]*SignOf(A)) - B); /* NOTE(abid): If both negative, this will be min. */
+            f32 Difference = Minimum(D0, D1);
             f32 Weighted = WeightVector->E[Tag->ID] * Difference;
             TotalWeightedDiff += Weighted;
         }
