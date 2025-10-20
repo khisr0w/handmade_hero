@@ -1014,23 +1014,18 @@ DrawMatte(loaded_bitmap *Buffer, loaded_bitmap *Bitmap,
 
 internal void
 RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget,
-                    rectangle2i ClipRect, bool Even)
-{
+                    rectangle2i ClipRect, bool Even) {
     BEGIN_TIMED_BLOCK(RenderGroupToOutput);
     real32 NullPixelsToMeters = 1.0f;
     
-    for(uint32 BaseAddress = 0;
-        BaseAddress < RenderGroup->PushBufferSize;)
-    {
+    for(uint32 BaseAddress = 0; BaseAddress < RenderGroup->PushBufferSize;) {
         render_group_entry_header *Header = (render_group_entry_header *)
             (RenderGroup->PushBufferBase + BaseAddress);
         BaseAddress += sizeof(*Header);
         
         void *Data = (uint8 *)Header + sizeof(*Header);
-        switch(Header->Type)
-        {
-            case RenderGroupEntryType_render_entry_clear:
-            {
+        switch(Header->Type) {
+            case RenderGroupEntryType_render_entry_clear: {
                 render_entry_clear *Entry = (render_entry_clear *)Data;
 
                 DrawRectangle(OutputTarget, V2(0.0f, 0.0f),
@@ -1040,8 +1035,7 @@ RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget,
                 BaseAddress += sizeof(*Entry);
             } break;
 
-            case RenderGroupEntryType_render_entry_bitmap:
-            {
+            case RenderGroupEntryType_render_entry_bitmap: {
                 render_entry_bitmap *Entry = (render_entry_bitmap *)Data;
 				Assert(Entry->Bitmap);
 #if 0
@@ -1062,8 +1056,7 @@ RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget,
                 BaseAddress += sizeof(*Entry);
             } break;
 
-            case RenderGroupEntryType_render_entry_rectangle:
-            {
+            case RenderGroupEntryType_render_entry_rectangle: {
                 render_entry_rectangle *Entry = (render_entry_rectangle *)Data;
                 DrawRectangle(OutputTarget, Entry->P, Entry->P + Entry->Dim,
 							  Entry->Color, ClipRect, Even);
@@ -1071,8 +1064,7 @@ RenderGroupToOutput(render_group *RenderGroup, loaded_bitmap *OutputTarget,
                 BaseAddress += sizeof(*Entry);
             } break;
 
-            case RenderGroupEntryType_render_entry_coordinate_system:
-            {
+            case RenderGroupEntryType_render_entry_coordinate_system: {
                 render_entry_coordinate_system *Entry = (render_entry_coordinate_system *)Data;
 #if 0
                 v2 vMax = (Entry->Origin + Entry->XAxis + Entry->YAxis);
